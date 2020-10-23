@@ -142,12 +142,6 @@ public class MainFrame {
 			return;
 		}
 
-		BufferedImage i = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D g = i.createGraphics();
-		g.setColor(Color.RED);
-		g.fillRect(2, 2, 12, 12);
-		g.dispose();
-
 		DoubleClickListener dcl = new DoubleClickListener();
 		icon = new TrayIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/changecontrol.png")),
 				APP_TITLE, popupSystemTray);

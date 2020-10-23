@@ -17,12 +17,12 @@ import controller.UserController;
 import dto.Country;
 import dto.User;
 import util.JTextFieldLimit;
+import util.Lock;
 
 import javax.swing.JLabel;
 import java.awt.Font;
-import java.awt.Graphics2D;
-import java.awt.MenuItem;
-import java.awt.PopupMenu;
+//import java.awt.MenuItem;
+//import java.awt.PopupMenu;
 import java.awt.SystemTray;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
@@ -43,25 +43,26 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.awt.event.WindowFocusListener;
 import java.net.URL;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.awt.event.ActionEvent;
 import java.awt.AWTException;
-import java.awt.Color;
 import java.awt.Component;
 
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.AbstractAction;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JToggleButton;
+import javax.swing.UIManager;
+import javax.swing.border.CompoundBorder;
+
+import com.formdev.flatlaf.intellijthemes.FlatCyanLightIJTheme;
+
+import javax.swing.ListSelectionModel;
 
 public class MainFrame {
 
@@ -74,32 +75,40 @@ public class MainFrame {
 	private TrayIcon icon;
 	private final JTextField txtAlias = new JTextField();
 	private final SystemTray tray = SystemTray.getSystemTray();
-	private final PopupMenu popupSystemTray = new PopupMenu();
+	private final JPopupMenu popupSystemTray = new JPopupMenu("TRAY");
 	private final UserController userController = new UserController();
 	private final CountryController countryController = new CountryController();
 	private boolean flagFirstIconfied = true;
 	private boolean flagShowingAlias = false;
 	private final static String APP_TITLE = "Account Switcher";
+	JDialog dialog = new JDialog();
 
 	/**
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		String userHome = System.getProperty("user.home");
-		File file = new File(userHome, "accswitch.lock");
+
 		try {
-			FileChannel fc = FileChannel.open(file.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-			FileLock lock = fc.tryLock();
-			if (lock == null) {
-				JOptionPane.showMessageDialog(null, "Just one instance may run.", APP_TITLE, JOptionPane.ERROR_MESSAGE);
-				System.exit(0);
-			}
-			file.deleteOnExit();
-		} catch (IOException e) {
-			System.exit(1);
+			Lock.preventMultipleInstances();
+		} catch (Exception | Error e) {
+			JOptionPane.showMessageDialog(null, e.getMessage(), APP_TITLE, JOptionPane.ERROR_MESSAGE);
+			System.exit(0);
 		}
 
+		// FlatCarbonIJTheme.install();
+		// FlatGruvboxDarkHardIJTheme.install();
+		// FlatHiberbeeDarkIJTheme.install();
+		// FlatMaterialDarkerContrastIJTheme.install();
+
+		FlatCyanLightIJTheme.install();
+
+		UIManager.put("Button.arc", 999);
+		UIManager.put("Component.arc", 999);
+		UIManager.put("ProgressBar.arc", 999);
+		UIManager.put("TextComponent.arc", 999);
+
 		SteamProcessMonitor.go();
+
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
@@ -127,12 +136,15 @@ public class MainFrame {
 	 */
 	@SuppressWarnings("unchecked")
 	private void initialize() {
+
 		frmAccountSwitcher = new JFrame();
+
 		frmAccountSwitcher.setResizable(false);
 		frmAccountSwitcher.setTitle(APP_TITLE);
 		frmAccountSwitcher.setBounds(100, 100, 541, 339);
 		frmAccountSwitcher.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmAccountSwitcher.getContentPane().setLayout(null);
+		frmAccountSwitcher.setLocationRelativeTo(null);
 
 		frmAccountSwitcher.setIconImage(
 				Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/changecontrol.png")));
@@ -143,9 +155,30 @@ public class MainFrame {
 		}
 
 		DoubleClickListener dcl = new DoubleClickListener();
+
+		/*
+		 * icon = new
+		 * TrayIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource(
+		 * "/images/changecontrol.png")), APP_TITLE, popupSystemTray);
+		 */
 		icon = new TrayIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/changecontrol.png")),
-				APP_TITLE, popupSystemTray);
+				APP_TITLE, null);
 		icon.addMouseListener(dcl);
+
+		// a little trick to hide popmenu on lost focus
+		// https://stackoverflow.com/questions/19868209/cannot-hide-systemtray-jpopupmenu-when-it-loses-focus
+		dialog.setSize(10, 10);
+		/* Add the window focus listener to the hidden dialog */
+		dialog.addWindowFocusListener(new WindowFocusListener() {
+			@Override
+			public void windowLostFocus(WindowEvent we) {
+				dialog.setVisible(false);
+			}
+
+			@Override
+			public void windowGainedFocus(WindowEvent we) {
+			}
+		});
 
 		Handler h = new Handler(tray, icon);
 		frmAccountSwitcher.addWindowStateListener(h);
@@ -158,7 +191,7 @@ public class MainFrame {
 
 		txtUsername = new JTextField();
 		txtUsername.setDocument(new JTextFieldLimit(20));
-		txtUsername.setBounds(10, 26, 170, 20);
+		txtUsername.setBounds(10, 26, 170, 26);
 		panel.add(txtUsername);
 		txtUsername.setColumns(10);
 
@@ -167,7 +200,7 @@ public class MainFrame {
 		JComboBox<?> cmbCountry = new JComboBox();
 		cmbCountry.setModel(model);
 		cmbCountry.setSelectedItem("Brazil");
-		cmbCountry.setBounds(10, 118, 170, 20);
+		cmbCountry.setBounds(10, 118, 170, 26);
 		panel.add(cmbCountry);
 
 		JLabel lblNewLabel = new JLabel("User Name *");
@@ -181,7 +214,7 @@ public class MainFrame {
 				addUser(txtUsername.getText(), cmbCountry.getSelectedItem().toString(), txtAlias.getText());
 			}
 		});
-		btnAddUser.setBounds(47, 149, 89, 23);
+		btnAddUser.setBounds(47, 160, 89, 26);
 		panel.add(btnAddUser);
 
 		JLabel lblNewLabel_1 = new JLabel("Country");
@@ -194,10 +227,10 @@ public class MainFrame {
 		lblNewLabel_2.setBounds(10, 52, 46, 14);
 		panel.add(lblNewLabel_2);
 
-		txtAlias.setBounds(10, 68, 170, 20);
+		txtAlias.setBounds(10, 68, 170, 26);
 		txtAlias.setDocument(new JTextFieldLimit(20));
-		panel.add(txtAlias);
 		txtAlias.setColumns(10);
+		panel.add(txtAlias);
 
 		JScrollPane scrollPane;
 		scrollPane = new JScrollPane();
@@ -205,6 +238,10 @@ public class MainFrame {
 		frmAccountSwitcher.getContentPane().add(scrollPane);
 
 		list = new JList<String>();
+		list.setVisibleRowCount(12);
+		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		list.setBorder(new CompoundBorder());
+		list.setFont(new Font("Tahoma", Font.BOLD, 12));
 
 		imageMap = createImageMap();
 		popMapFKeys();
@@ -289,6 +326,16 @@ public class MainFrame {
 			refreshList();
 			refreshPopupItems(popupSystemTray);
 
+		} catch (Exception | Error e) {
+			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private void removeUser(int index) {
+		try {
+
+			User user = userController.getListUsers().get(index);
+			removeUser(user.getUserName());
 		} catch (Exception | Error e) {
 			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
 		}
@@ -432,7 +479,8 @@ public class MainFrame {
 
 				if (JOptionPane.showConfirmDialog(frmAccountSwitcher, ("Remove " + list.getSelectedValue()) + " ?",
 						"Delete User", JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION) {
-					removeUser(list.getSelectedValue());
+					// removeUser(list.getSelectedValue());
+					removeUser(list.getSelectedIndex());
 				}
 			}
 		});
@@ -452,17 +500,23 @@ public class MainFrame {
 		list.setModel(listUserToListModel());
 	}
 
-	private void refreshPopupItems(PopupMenu pp) {
-		MenuItem item;
+	// private void refreshPopupItems(PopupMenu pp) {
+	private void refreshPopupItems(JPopupMenu pp) {
+		// MenuItem item;
+		JMenuItem item;
 		ArrayList<User> list = userController.getListUsers();
 
 		// if (list.size() > 0)
 		pp.removeAll();
 
 		for (User user : list) {
+			Country country = countryController.findByDomain(user.getCountry());
 
-			item = new MenuItem(
-					"(" + user.getCountry() + ") " + (flagShowingAlias ? user.getAlias() : user.getUserName()));
+			ImageIcon imageIcon = new ImageIcon(
+					Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/pop" + country.getFlag())));
+
+			// item = new MenuItem(
+			item = new JMenuItem((flagShowingAlias ? user.getAlias() : user.getUserName()), imageIcon);
 
 			if (isActiveUser(user.getUserName()))
 				item.setEnabled(false);
@@ -482,8 +536,10 @@ public class MainFrame {
 
 		pp.addSeparator();
 
-		item = new MenuItem("EXIT");
+		// item = new MenuItem("EXIT");
+		item = new JMenuItem("EXIT");
 		item.addActionListener(new ActionListener() {
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				tray.remove(icon);
@@ -491,8 +547,10 @@ public class MainFrame {
 				frmAccountSwitcher.dispose();
 				System.exit(0);
 			}
+
 		});
 		pp.add(item);
+
 	}
 
 	private void listKeyRelease(int keycode) {
@@ -574,7 +632,7 @@ public class MainFrame {
 					// String[] splitted = o.toString().trim().split(" ");
 					String user = findUserByIndex(index);
 					steamGo(user);
-					frmAccountSwitcher.setState(JFrame.ICONIFIED);
+					frmAccountSwitcher.setState(JFrame.ICONIFIED);					
 					// JOptionPane.showMessageDialog(theList, "Double-clicked on: " + o.toString());
 					System.out.println("Double-clicked on: " + o.toString());
 				}
@@ -583,7 +641,7 @@ public class MainFrame {
 
 		public void trayIconDoubleClick(MouseEvent e) {
 			final SystemTray tray = SystemTray.getSystemTray();
-			if (e.getClickCount() == 2) {
+			if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
 				frmAccountSwitcher.setVisible(true);
 				frmAccountSwitcher.setState(JFrame.NORMAL);
 				tray.remove(icon);
@@ -593,24 +651,39 @@ public class MainFrame {
 		public void mousePressed(MouseEvent e) {
 			if (e.getButton() == MouseEvent.BUTTON3 && e.getSource() instanceof JList)
 				jlistPopMenu(e);
+			if (e.getSource() instanceof TrayIcon) {
+				if (e.isPopupTrigger()) {
+					System.out.println("TrayIcon popup mousePressed");
+				}
+			}
 		}
 
 		public void mouseReleased(MouseEvent e) {
-			if (e.getButton() == MouseEvent.BUTTON3 && e.getSource() instanceof JList)
-				jlistPopMenu(e);
+			if (e.isPopupTrigger()) {
+				if (e.getSource() instanceof JList)
+					jlistPopMenu(e);
+				if (e.getSource() instanceof TrayIcon)
+					showPopup(e);
+				// System.out.println("TrayIcon popup mouseReleased");
+			}
 		}
 
 		public void jlistPopMenu(MouseEvent e) {
 
 			// if (e.isPopupTrigger()) { // if the event shows the menu
-			if (e.getButton() == MouseEvent.BUTTON3) {
-				JList<?> jlist = (JList<?>) e.getSource();
-				jlist.setSelectedIndex(jlist.locationToIndex(e.getPoint())); // select the item
-				JPopupMenu jPopupMenu = jlist.getComponentPopupMenu();
-				jPopupMenu.show(jlist, e.getX(), e.getY()); // and show the menu
-			}
+			JList<?> jlist = (JList<?>) e.getSource();
+			jlist.setSelectedIndex(jlist.locationToIndex(e.getPoint())); // select the item
+			JPopupMenu jPopupMenu = jlist.getComponentPopupMenu();
+			jPopupMenu.show(jlist, e.getX(), e.getY()); // and show the menu
 		}
 
+		private void showPopup(MouseEvent e) {
+			dialog.setLocation(e.getX(), e.getY());
+			popupSystemTray.setLocation(e.getX(), e.getY());
+			popupSystemTray.setInvoker(dialog);
+			dialog.setVisible(true);
+			popupSystemTray.setVisible(true);
+		}
 	}
 
 	public class CountryListRenderer extends DefaultListCellRenderer {
@@ -619,7 +692,6 @@ public class MainFrame {
 		 * 
 		 */
 		private static final long serialVersionUID = 1L;
-		Font font = new Font("helvitica", Font.BOLD, 16);
 
 		@Override
 		public Component getListCellRendererComponent(JList<?> l, Object value, int index, boolean isSelected,
@@ -628,7 +700,6 @@ public class MainFrame {
 			JLabel label = (JLabel) super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
 			label.setIcon(imageMap.get((String) value));
 			label.setHorizontalTextPosition(JLabel.RIGHT);
-			label.setFont(font);
 			return label;
 		}
 	}
@@ -654,11 +725,10 @@ public class MainFrame {
 		}
 
 		public void windowStateChanged(WindowEvent e) {
-			System.out.println("ICONIFIED");
 			if (e.getNewState() == JFrame.ICONIFIED) {
 				addTrayIconDisposeFrame((JFrame) e.getSource());
 				if (flagFirstIconfied) {
-					icon.displayMessage(APP_TITLE, "We are here, in system tray...", MessageType.INFO);
+					icon.displayMessage(APP_TITLE, "We are here in system tray...", MessageType.INFO);
 					flagFirstIconfied = false;
 				}
 			}

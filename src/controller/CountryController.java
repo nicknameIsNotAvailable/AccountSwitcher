@@ -40,6 +40,20 @@ public class CountryController {
 		return null;
 	}
 	
+	public Country findByDomain(String countrydomain) {		
+		countrydomain = countrydomain.trim();
+		
+		if(countrydomain.equals(""))
+			throw new Error("Invalid country domain !!!");
+		
+		for(Country c: listCountries) {
+			if(c.getDomain().equals(countrydomain))
+				return c;
+		}
+		
+		return null;
+	}
+	
 	public ArrayList<Country> getListCountries() {
 		return listCountries;
 	}

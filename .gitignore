@@ -2,5 +2,7 @@
 /.settings/
 /resources/images/
 h2-1.4.200.jar
+flatlaf-0.43.jar
+flatlaf-intellij-themes-0.43.jar
 .classpath
 .project

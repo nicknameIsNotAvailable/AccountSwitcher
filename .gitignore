@@ -1,8 +1,12 @@
 /bin/
 /.settings/
+/logs/
 /resources/images/
+/resorces/log4j2.properties
 h2-1.4.200.jar
 flatlaf-0.43.jar
 flatlaf-intellij-themes-0.43.jar
+log4j-api-2.13.3.jar
+log4j-core-2.13.3.jar
 .classpath
 .project

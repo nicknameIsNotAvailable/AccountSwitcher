@@ -4,7 +4,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public class SteamRegistryEntry extends RegistryEntry {
+	private static final Logger logger = LogManager.getLogger(SteamRegistryEntry.class);
 
 	public SteamRegistryEntry() {
 		super();
@@ -15,6 +19,7 @@ public class SteamRegistryEntry extends RegistryEntry {
 	public String getRegistryValue(String regKey) {
 		this.registryKey = regKey;
 		ProcessBuilder processBuilder = new ProcessBuilder();
+		logger.debug("Searching for steam registry value : " + registryAddress + "/" + registryKey);
 		processBuilder.command("reg", "query", registryAddress, "/v", registryKey);
 
 		Process process;
@@ -53,6 +58,8 @@ public class SteamRegistryEntry extends RegistryEntry {
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} finally {
+			logger.debug("Returning : " + retorno);
 		}
 		return retorno;
 	}
@@ -67,6 +74,7 @@ public class SteamRegistryEntry extends RegistryEntry {
 		Process process;
 
 		try {
+			logger.debug("Setting value to steam registry value : " + regKey + " = " + regValue);
 			process = processBuilder.start();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 			String line;
@@ -75,7 +83,7 @@ public class SteamRegistryEntry extends RegistryEntry {
 				if (line.length() <= 0)
 					continue;
 				line = line.trim();
-				System.out.println(line);
+				// System.out.println(line);
 			}
 			reader.close();
 			process.waitFor();
@@ -90,21 +98,34 @@ public class SteamRegistryEntry extends RegistryEntry {
 		}
 	}
 
-	public static String getSteamActiveUsername() {
+	public static String getSteamActiveUsername() {		
 		String retorno = new SteamRegistryEntry().getRegistryValue("AutoLoginUser");
 		if (retorno == null) {
-			System.out.println("Active username null");
+			// System.out.println("Active username null");
+			logger.debug("System exit : active username null");
 			System.exit(1);
 		}
 		/*
-		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		System.out.println("retorno = " + retorno);
-		System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		*/
+		 * System.out.println(
+		 * "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+		 * ); System.out.println("retorno = " + retorno); System.out.println(
+		 * "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+		 * );
+		 */
 		return retorno;
 	}
 
 	public static String getSteamExePath() {
-		return new SteamRegistryEntry().getRegistryValue("SteamExe");
+		logger.debug("Searching for steam registry value...");
+		String strPath = new SteamRegistryEntry().getRegistryValue("SteamExe");
+		return strPath;
+		// return strPath.replace("/", "\\");
+	}
+
+	public static String getSteamDirPath() {
+		logger.debug("Searching for steam registry value...");
+		String strPath = new SteamRegistryEntry().getRegistryValue("SteamPath");
+		return strPath;
+		// return strPath.replace("/", "\\");
 	}
 }

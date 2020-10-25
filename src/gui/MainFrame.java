@@ -44,6 +44,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,7 +61,11 @@ import javax.swing.JToggleButton;
 import javax.swing.UIManager;
 import javax.swing.border.CompoundBorder;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.formdev.flatlaf.intellijthemes.FlatCyanLightIJTheme;
+import com.formdev.flatlaf.intellijthemes.FlatGruvboxDarkHardIJTheme;
 
 import javax.swing.ListSelectionModel;
 
@@ -80,7 +85,9 @@ public class MainFrame {
 	private final CountryController countryController = new CountryController();
 	private boolean flagFirstIconfied = true;
 	private boolean flagShowingAlias = false;
-	private final static String APP_TITLE = "Account Switcher";
+	private final static String osName = System.getProperty("os.name");
+	private final static String APP_TITLE = "Account Switcher - " + osName;	
+	private static final Logger logger = LogManager.getLogger(MainFrame.class);
 	JDialog dialog = new JDialog();
 
 	/**
@@ -95,12 +102,19 @@ public class MainFrame {
 			System.exit(0);
 		}
 
+		// System.getProperties().list(System.out);
+
+		if (System.getProperty("os.name").toLowerCase().contains("windows 10")) {
+			JFrame.setDefaultLookAndFeelDecorated(true);
+			JDialog.setDefaultLookAndFeelDecorated(true);
+			FlatGruvboxDarkHardIJTheme.install();
+		} else {
+			FlatCyanLightIJTheme.install();
+		}
+
 		// FlatCarbonIJTheme.install();
-		// FlatGruvboxDarkHardIJTheme.install();
 		// FlatHiberbeeDarkIJTheme.install();
 		// FlatMaterialDarkerContrastIJTheme.install();
-
-		FlatCyanLightIJTheme.install();
 
 		UIManager.put("Button.arc", 999);
 		UIManager.put("Component.arc", 999);
@@ -167,7 +181,7 @@ public class MainFrame {
 
 		// a little trick to hide popmenu on lost focus
 		// https://stackoverflow.com/questions/19868209/cannot-hide-systemtray-jpopupmenu-when-it-loses-focus
-		dialog.setSize(10, 10);
+		dialog.setSize(1, 1);
 		/* Add the window focus listener to the hidden dialog */
 		dialog.addWindowFocusListener(new WindowFocusListener() {
 			@Override
@@ -414,7 +428,7 @@ public class MainFrame {
 
 	private boolean isActiveUser(String username) {
 		User activeuser = getActiveUser();
-
+		logger.debug("Checking active user...");
 		if (activeuser != null)
 			return username.toLowerCase().equals(activeuser.getUserName().toLowerCase());
 
@@ -423,17 +437,30 @@ public class MainFrame {
 
 	private boolean steamGo(String user) {
 		SteamRegistryEntry sre = new SteamRegistryEntry();
+		// SteamProcess sp = new SteamProcess(SteamRegistryEntry.getSteamExePath(),
+		// SteamRegistryEntry.getSteamDirPath());
 		SteamProcess sp = new SteamProcess(SteamRegistryEntry.getSteamExePath());
 
-		if (isActiveUser(user)) {
-			JOptionPane.showMessageDialog(frmAccountSwitcher, "User already active.");
-			return false;
-		}
+		try {
+			if (isActiveUser(user)) {
+				JOptionPane.showMessageDialog(frmAccountSwitcher, "User already active.");
+				return false;
+			}
 
-		sre.setValue("AutoLoginUser", user, "REG_SZ");
-		sre.setValue("RememberPassword", "1", "REG_DWORD");
-		sp.start();
-		return true;
+			sp.close();
+
+			sre.setValue("AutoLoginUser", user, "REG_SZ");
+			sre.setValue("RememberPassword", "1", "REG_DWORD");
+			logger.debug("Try start steam process...");
+			sp.start();
+			return true;
+
+		} catch (InterruptedException | IOException e) {
+			logger.error(e.getMessage());
+			JOptionPane.showMessageDialog(frmAccountSwitcher, "Error on start steam client...", APP_TITLE,
+					JOptionPane.ERROR_MESSAGE);
+		}
+		return false;
 	}
 
 	private void steamStatusChangeMonitor() {
@@ -445,12 +472,13 @@ public class MainFrame {
 					while (true) {
 						if (SteamProcessMonitor.isAlive != actualState) {
 							// Status Change
-							System.out.println("Steam status changed to " + (isAlive() ? "ON" : "OFF"));
+							logger.debug("Steam status changed to " + (SteamProcessMonitor.isAlive ? "ON" : "OFF"));
 							actualState = SteamProcessMonitor.isAlive;
+							logger.debug("Refreshing users...");
 							refreshList();
 							refreshPopupItems(popupSystemTray);
 						}
-						Thread.sleep(2000);
+						Thread.sleep(6);
 					}
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -526,6 +554,8 @@ public class MainFrame {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					if (steamGo(user.getUserName())) {
+						// dialog.setFocusable(false);
+						dialog.setVisible(false);
 						frmAccountSwitcher.setState(JFrame.ICONIFIED);
 						// System.out.println("User : " + user.getUserName());
 						refreshPopupItems(pp);
@@ -624,17 +654,17 @@ public class MainFrame {
 		}
 
 		public void listDoubleClick(MouseEvent e) {
-			JList<?> jlist = (JList<?>) e.getSource();
+			// JList<?> jlist = (JList<?>) e.getSource();
 			if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
 				int index = list.locationToIndex(e.getPoint());
 				if (index >= 0) {
-					Object o = jlist.getModel().getElementAt(index);
+					// Object o = jlist.getModel().getElementAt(index);
 					// String[] splitted = o.toString().trim().split(" ");
 					String user = findUserByIndex(index);
 					steamGo(user);
-					frmAccountSwitcher.setState(JFrame.ICONIFIED);					
+					frmAccountSwitcher.setState(JFrame.ICONIFIED);
 					// JOptionPane.showMessageDialog(theList, "Double-clicked on: " + o.toString());
-					System.out.println("Double-clicked on: " + o.toString());
+					// System.out.println("Double-clicked on: " + o.toString());
 				}
 			}
 		}
@@ -653,7 +683,7 @@ public class MainFrame {
 				jlistPopMenu(e);
 			if (e.getSource() instanceof TrayIcon) {
 				if (e.isPopupTrigger()) {
-					System.out.println("TrayIcon popup mousePressed");
+					showPopup(e);
 				}
 			}
 		}
@@ -681,7 +711,9 @@ public class MainFrame {
 			dialog.setLocation(e.getX(), e.getY());
 			popupSystemTray.setLocation(e.getX(), e.getY());
 			popupSystemTray.setInvoker(dialog);
+			dialog.setFocusable(false);
 			dialog.setVisible(true);
+			// dialog.setVisible(false);
 			popupSystemTray.setVisible(true);
 		}
 	}

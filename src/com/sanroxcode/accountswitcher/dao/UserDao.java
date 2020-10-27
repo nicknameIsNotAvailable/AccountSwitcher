@@ -1,4 +1,4 @@
-package dao;
+package com.sanroxcode.accountswitcher.dao;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -7,8 +7,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import db.H2DB;
-import dto.User;
+import com.sanroxcode.accountswitcher.db.H2DB;
+import com.sanroxcode.accountswitcher.dto.User;
 
 public class UserDao {
 	public UserDao() {

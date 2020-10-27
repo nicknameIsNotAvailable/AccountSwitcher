@@ -1,9 +1,9 @@
-package controller;
+package com.sanroxcode.accountswitcher.controller;
 
 import java.util.ArrayList;
 
-import dao.UserDao;
-import dto.User;
+import com.sanroxcode.accountswitcher.dao.UserDao;
+import com.sanroxcode.accountswitcher.dto.User;
 
 public class UserController {
 	private final ArrayList<User> listUsers = new ArrayList<User>();

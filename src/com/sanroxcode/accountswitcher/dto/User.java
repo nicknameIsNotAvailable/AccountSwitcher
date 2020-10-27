@@ -1,4 +1,4 @@
-package dto;
+package com.sanroxcode.accountswitcher.dto;
 
 public class User {
 	private String platform;

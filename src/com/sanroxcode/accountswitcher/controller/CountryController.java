@@ -1,9 +1,9 @@
-package controller;
+package com.sanroxcode.accountswitcher.controller;
 
 import java.util.ArrayList;
 
-import dao.CountryDao;
-import dto.Country;
+import com.sanroxcode.accountswitcher.dao.CountryDao;
+import com.sanroxcode.accountswitcher.dto.Country;
 
 public class CountryController {
 	private final ArrayList<Country> listCountries = new ArrayList<Country>();

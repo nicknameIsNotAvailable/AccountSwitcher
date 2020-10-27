@@ -1,4 +1,4 @@
-package util;
+package com.sanroxcode.accountswitcher.util;
 
 import javax.swing.text.PlainDocument;
 import javax.swing.text.AttributeSet;

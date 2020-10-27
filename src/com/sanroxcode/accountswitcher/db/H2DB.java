@@ -1,4 +1,4 @@
-package db;
+package com.sanroxcode.accountswitcher.db;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,7 +10,7 @@ public class H2DB {
 		Connection conn = null;
 		try {
 			Class.forName("org.h2.Driver");
-			conn = DriverManager.getConnection("jdbc:h2:~/accswitch;DB_CLOSE_DELAY=-1", "user", "password");
+			conn = DriverManager.getConnection("jdbc:h2:~/accswitch;DB_CLOSE_DELAY=-1", "sa", "sa");
 			// createTableUsers();
 			//createTableCountries(conn);
 			//createTableUsers(conn);

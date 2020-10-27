@@ -1,4 +1,4 @@
-package controller;
+package com.sanroxcode.accountswitcher.controller;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,15 +12,15 @@ public class SteamRegistryEntry extends RegistryEntry {
 
 	public SteamRegistryEntry() {
 		super();
-		this.registryAddress = "HKCU\\SOFTWARE\\Valve\\Steam";
+		setRegistryAddress("HKCU\\SOFTWARE\\Valve\\Steam");
 	}
 
-	@Override
 	public String getRegistryValue(String regKey) {
-		this.registryKey = regKey;
+		setRegistryKey(regKey);
+		//this.registryKey = regKey;
 		ProcessBuilder processBuilder = new ProcessBuilder();
-		logger.debug("Searching for steam registry value : " + registryAddress + "/" + registryKey);
-		processBuilder.command("reg", "query", registryAddress, "/v", registryKey);
+		//logger.debug("Searching for steam registry value : " + registryAddress + "/" + registryKey);
+		processBuilder.command("reg", "query", getRegistryAddress(), "/v", getRegistryKey());
 
 		Process process;
 		String retorno = null;
@@ -59,22 +59,21 @@ public class SteamRegistryEntry extends RegistryEntry {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			logger.debug("Returning : " + retorno);
+			//logger.debug("Returning : " + retorno);
 		}
 		return retorno;
 	}
 
 	@Override
 	public void setValue(String regKey, String regValue, String regType) {
-		registryKey = regKey;
-		registryValue = regValue;
-
+		setRegistryKey(regKey);
+			
 		ProcessBuilder processBuilder = new ProcessBuilder();
-		processBuilder.command("reg", "add", registryAddress, "/v", registryKey, "/t", regType, "/d", regValue, "/f");
+		processBuilder.command("reg", "add", getRegistryAddress(), "/v", getRegistryKey(), "/t", regType , "/d", regValue, "/f");
 		Process process;
 
 		try {
-			logger.debug("Setting value to steam registry value : " + regKey + " = " + regValue);
+			//logger.debug("Setting value to steam registry value : " + regKey + " = " + regValue);
 			process = processBuilder.start();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 			String line;
@@ -83,10 +82,11 @@ public class SteamRegistryEntry extends RegistryEntry {
 				if (line.length() <= 0)
 					continue;
 				line = line.trim();
-				// System.out.println(line);
+				//System.out.println(line);
 			}
 			reader.close();
 			process.waitFor();
+			process.destroy();
 			// System.out.println("Set Value exit code : " + code +
 			// "\n----------------------------");
 		} catch (IOException e) {

@@ -1,4 +1,4 @@
-package gui;
+package com.sanroxcode.accountswitcher.gui;
 
 import java.awt.EventQueue;
 
@@ -8,17 +8,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.WindowConstants;
-
-import controller.CountryController;
-import controller.SteamProcess;
-import controller.SteamProcessMonitor;
-import controller.SteamRegistryEntry;
-import controller.UserController;
-import dto.Country;
-import dto.User;
-import util.JTextFieldLimit;
-import util.Lock;
-
 import javax.swing.JLabel;
 import java.awt.Font;
 //import java.awt.MenuItem;
@@ -66,6 +55,17 @@ import org.apache.logging.log4j.Logger;
 
 import com.formdev.flatlaf.intellijthemes.FlatCyanLightIJTheme;
 import com.formdev.flatlaf.intellijthemes.FlatGruvboxDarkHardIJTheme;
+import com.sanroxcode.accountswitcher.controller.CountryController;
+import com.sanroxcode.accountswitcher.controller.SteamProcess;
+import com.sanroxcode.accountswitcher.controller.SteamProcessMonitor;
+import com.sanroxcode.accountswitcher.controller.SteamProcessX64;
+import com.sanroxcode.accountswitcher.controller.SteamProcessX86;
+import com.sanroxcode.accountswitcher.controller.SteamRegistryEntry;
+import com.sanroxcode.accountswitcher.controller.UserController;
+import com.sanroxcode.accountswitcher.dto.Country;
+import com.sanroxcode.accountswitcher.dto.User;
+import com.sanroxcode.accountswitcher.util.JTextFieldLimit;
+import com.sanroxcode.accountswitcher.util.Lock;
 
 import javax.swing.ListSelectionModel;
 
@@ -86,9 +86,10 @@ public class MainFrame {
 	private boolean flagFirstIconfied = true;
 	private boolean flagShowingAlias = false;
 	private final static String osName = System.getProperty("os.name");
-	private final static String APP_TITLE = "Account Switcher - " + osName;	
+	private final static String APP_TITLE = "Account Switcher - " + osName;
 	private static final Logger logger = LogManager.getLogger(MainFrame.class);
 	JDialog dialog = new JDialog();
+	// private boolean[] enabledFlags;
 
 	/**
 	 * Launch the application.
@@ -104,7 +105,7 @@ public class MainFrame {
 
 		// System.getProperties().list(System.out);
 
-		if (System.getProperty("os.name").toLowerCase().contains("windows 10")) {
+		if (osName.toLowerCase().contains("windows 10") || osName.toLowerCase().contains("windows 7")) {
 			JFrame.setDefaultLookAndFeelDecorated(true);
 			JDialog.setDefaultLookAndFeelDecorated(true);
 			FlatGruvboxDarkHardIJTheme.install();
@@ -121,7 +122,16 @@ public class MainFrame {
 		UIManager.put("ProgressBar.arc", 999);
 		UIManager.put("TextComponent.arc", 999);
 
-		SteamProcessMonitor.go();
+		LogManager.shutdown();
+
+		Class<? extends SteamProcess> clazz;
+
+		if (osName.toLowerCase().contains("windows 10"))
+			clazz = SteamProcessX64.class;
+		else
+			clazz = SteamProcessX86.class;
+
+		SteamProcessMonitor.go(clazz);
 
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -263,6 +273,7 @@ public class MainFrame {
 		scrollPane.setViewportView(list);
 		list.setComponentPopupMenu(popMenuListUsers());
 		list.setCellRenderer(new CountryListRenderer());
+		// list.setSelectionModel(new DisabledItemSelectionModel());
 
 		JToggleButton toggleAlias = new JToggleButton("");
 		toggleAlias.addActionListener(new ActionListener() {
@@ -439,7 +450,13 @@ public class MainFrame {
 		SteamRegistryEntry sre = new SteamRegistryEntry();
 		// SteamProcess sp = new SteamProcess(SteamRegistryEntry.getSteamExePath(),
 		// SteamRegistryEntry.getSteamDirPath());
-		SteamProcess sp = new SteamProcess(SteamRegistryEntry.getSteamExePath());
+
+		SteamProcess sp;
+
+		if (osName.toLowerCase().contains("windows 10"))
+			sp = new SteamProcessX64(SteamRegistryEntry.getSteamExePath());
+		else
+			sp = new SteamProcessX86(SteamRegistryEntry.getSteamExePath());
 
 		try {
 			if (isActiveUser(user)) {
@@ -451,6 +468,13 @@ public class MainFrame {
 
 			sre.setValue("AutoLoginUser", user, "REG_SZ");
 			sre.setValue("RememberPassword", "1", "REG_DWORD");
+
+			logger.debug("Waiting Steam process terminate...");
+
+			//if()
+			icon.displayMessage(APP_TITLE, "Steam process is ending, Please wait...", MessageType.INFO);
+			SteamProcessMonitor.waitSteamProcessTerminate(sp.getClass());
+
 			logger.debug("Try start steam process...");
 			sp.start();
 			return true;
@@ -526,6 +550,13 @@ public class MainFrame {
 	private void refreshList() {
 		imageMap = createImageMap();
 		list.setModel(listUserToListModel());
+		/*
+		 * enabledFlags = new boolean[list.getModel().getSize()];
+		 * 
+		 * for (int i = 0; i < list.getModel().getSize(); i++) { enabledFlags[i] = true;
+		 * }
+		 */
+
 	}
 
 	// private void refreshPopupItems(PopupMenu pp) {
@@ -732,6 +763,7 @@ public class MainFrame {
 			JLabel label = (JLabel) super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
 			label.setIcon(imageMap.get((String) value));
 			label.setHorizontalTextPosition(JLabel.RIGHT);
+
 			return label;
 		}
 	}
@@ -771,4 +803,20 @@ public class MainFrame {
 			addTrayIconDisposeFrame((JFrame) e.getSource());
 		}
 	}
+
+	/*
+	 * private class DisabledItemSelectionModel extends DefaultListSelectionModel {
+	 * 
+	 * private static final long serialVersionUID = 1L;
+	 * 
+	 * @Override public void setSelectionInterval(int index0, int index1) { if
+	 * (enabledFlags[index0]) { super.setSelectionInterval(index0, index0); } else {
+	 * 
+	 * if (getAnchorSelectionIndex() < index0) { for (int i = index0; i <
+	 * enabledFlags.length; i++) { if (enabledFlags[i]) {
+	 * super.setSelectionInterval(i, i); return; } } }else { for (int i = index0; i
+	 * >= 0; i--) { if (enabledFlags[i]) { super.setSelectionInterval(i, i); return;
+	 * } } } } } }
+	 */
+
 }

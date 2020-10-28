@@ -179,7 +179,7 @@ public class MainFrame {
 
 		frmAccountSwitcher.setResizable(false);
 		frmAccountSwitcher.setTitle(APP_TITLE);
-		frmAccountSwitcher.setBounds(100, 100, 662, 339);
+		frmAccountSwitcher.setBounds(100, 100, 668, 339);
 		frmAccountSwitcher.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmAccountSwitcher.getContentPane().setLayout(null);
 		frmAccountSwitcher.setLocationRelativeTo(null);
@@ -302,6 +302,7 @@ public class MainFrame {
 
 		frmAccountSwitcher.getContentPane().add(scrollPaneTable);
 
+		
 		steamStatusChangeMonitor();
 
 		refreshListComponents();
@@ -590,6 +591,7 @@ public class MainFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				flagShowingAlias = !flagShowingAlias;
+				dialog.setVisible(false);
 				frmAccountSwitcher.setState(JFrame.ICONIFIED);
 				refreshPopupTrayicon(pp);
 			}

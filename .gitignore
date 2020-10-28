@@ -2,7 +2,8 @@
 /.settings/
 /logs/
 /resources/images/
-/resorces/log4j2.properties
+/resources/log4j2.properties
+/com/sanroxcode/accountswitcher/controller/SteamProcessBKP.java
 h2-1.4.200.jar
 flatlaf-0.43.jar
 flatlaf-intellij-themes-0.43.jar

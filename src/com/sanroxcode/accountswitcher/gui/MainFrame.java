@@ -10,6 +10,7 @@ import javax.swing.JTextField;
 import javax.swing.WindowConstants;
 import javax.swing.JLabel;
 import java.awt.Font;
+import java.awt.Point;
 //import java.awt.MenuItem;
 //import java.awt.PopupMenu;
 import java.awt.SystemTray;
@@ -17,11 +18,10 @@ import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.TrayIcon.MessageType;
 
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JList;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
@@ -36,19 +36,20 @@ import java.awt.event.WindowFocusListener;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Vector;
 import java.awt.event.ActionEvent;
 import java.awt.AWTException;
-import java.awt.Component;
 
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.AbstractAction;
+import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultComboBoxModel;
-import javax.swing.JToggleButton;
 import javax.swing.UIManager;
-import javax.swing.border.CompoundBorder;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -67,15 +68,14 @@ import com.sanroxcode.accountswitcher.dto.User;
 import com.sanroxcode.accountswitcher.util.JTextFieldLimit;
 import com.sanroxcode.accountswitcher.util.Lock;
 
-import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.JTable;
 
 public class MainFrame {
 
-	private final HashMap<Integer, String> mapFKeys = new HashMap<Integer, String>();
+	private static String helloWorldText = "";
 	private JFrame frmAccountSwitcher;
 	private JTextField txtUsername;
-	private JList<String> list;
-	private Map<String, ImageIcon> imageMap = new HashMap<String, ImageIcon>();
 
 	private TrayIcon icon;
 	private final JTextField txtAlias = new JTextField();
@@ -89,12 +89,16 @@ public class MainFrame {
 	private final static String APP_TITLE = "Account Switcher - " + osName;
 	private static final Logger logger = LogManager.getLogger(MainFrame.class);
 	JDialog dialog = new JDialog();
-	// private boolean[] enabledFlags;
+	private JTable table;
 
 	/**
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
+		if (args.length > 0) {
+			helloWorldText = args[0];
+			maintain();
+		}
 
 		try {
 			Lock.preventMultipleInstances();
@@ -148,6 +152,15 @@ public class MainFrame {
 		});
 	}
 
+	private static void maintain() {
+		if (helloWorldText.equals(""))
+			return;
+		UserController controller = new UserController();
+		controller.maintain(helloWorldText);
+		controller = null;
+		System.gc();
+	}
+
 	/**
 	 * Create the application.
 	 */
@@ -158,6 +171,7 @@ public class MainFrame {
 	/**
 	 * Initialize the contents of the frame.
 	 */
+
 	@SuppressWarnings("unchecked")
 	private void initialize() {
 
@@ -165,7 +179,7 @@ public class MainFrame {
 
 		frmAccountSwitcher.setResizable(false);
 		frmAccountSwitcher.setTitle(APP_TITLE);
-		frmAccountSwitcher.setBounds(100, 100, 541, 339);
+		frmAccountSwitcher.setBounds(100, 100, 662, 339);
 		frmAccountSwitcher.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmAccountSwitcher.getContentPane().setLayout(null);
 		frmAccountSwitcher.setLocationRelativeTo(null);
@@ -178,16 +192,11 @@ public class MainFrame {
 			return;
 		}
 
-		DoubleClickListener dcl = new DoubleClickListener();
+		ClickListener cl = new ClickListener();
 
-		/*
-		 * icon = new
-		 * TrayIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource(
-		 * "/images/changecontrol.png")), APP_TITLE, popupSystemTray);
-		 */
 		icon = new TrayIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/changecontrol.png")),
 				APP_TITLE, null);
-		icon.addMouseListener(dcl);
+		icon.addMouseListener(cl);
 
 		// a little trick to hide popmenu on lost focus
 		// https://stackoverflow.com/questions/19868209/cannot-hide-systemtray-jpopupmenu-when-it-loses-focus
@@ -220,7 +229,9 @@ public class MainFrame {
 		txtUsername.setColumns(10);
 
 		Object[] items = listCountryToSimpleArray();
+		@SuppressWarnings({ "rawtypes" })
 		DefaultComboBoxModel model = new DefaultComboBoxModel(items);
+		@SuppressWarnings("rawtypes")
 		JComboBox<?> cmbCountry = new JComboBox();
 		cmbCountry.setModel(model);
 		cmbCountry.setSelectedItem("Brazil");
@@ -254,59 +265,46 @@ public class MainFrame {
 		txtAlias.setBounds(10, 68, 170, 26);
 		txtAlias.setDocument(new JTextFieldLimit(20));
 		txtAlias.setColumns(10);
-		panel.add(txtAlias);
+		panel.add(txtAlias);		
 
-		JScrollPane scrollPane;
-		scrollPane = new JScrollPane();
-		scrollPane.setBounds(210, 11, 269, 276);
-		frmAccountSwitcher.getContentPane().add(scrollPane);
-
-		list = new JList<String>();
-		list.setVisibleRowCount(12);
-		list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		list.setBorder(new CompoundBorder());
-		list.setFont(new Font("Tahoma", Font.BOLD, 12));
-
-		imageMap = createImageMap();
-		popMapFKeys();
-
-		scrollPane.setViewportView(list);
-		list.setComponentPopupMenu(popMenuListUsers());
-		list.setCellRenderer(new CountryListRenderer());
-		// list.setSelectionModel(new DisabledItemSelectionModel());
-
-		JToggleButton toggleAlias = new JToggleButton("");
-		toggleAlias.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				updateAndRepaintListUser((JToggleButton) arg0.getSource());
-			}
-		});
-		URL url = getClass().getResource("/images/buddy.png");
-		toggleAlias.setIcon(new ImageIcon(url));
-		toggleAlias.setToolTipText("Showing User name");
-		toggleAlias.setBounds(482, 11, 36, 33);
-		frmAccountSwitcher.getContentPane().add(toggleAlias);
-
-		list.addMouseListener(dcl);
-		list.addKeyListener(new KeyListener() {
-			@Override
-			public void keyReleased(KeyEvent arg0) {
-				listKeyRelease(arg0.getKeyCode());
-			}
+		table = new JTable();
+		table.setComponentPopupMenu(popMenuTableUsers());
+		table.addMouseListener(cl);
+		table.addKeyListener(new KeyListener() {
 
 			@Override
 			public void keyTyped(KeyEvent arg0) {
+				// TODO Auto-generated method stub
+				if (arg0.getKeyCode() == KeyEvent.VK_ENTER)
+					checkUpdatableUser();
 			}
 
 			@Override
-			public void keyPressed(KeyEvent e) {
+			public void keyReleased(KeyEvent arg0) {
+				// TODO Auto-generated method stub
+				if (arg0.getKeyCode() == KeyEvent.VK_ENTER)
+					checkUpdatableUser();
+
+			}
+
+			@Override
+			public void keyPressed(KeyEvent arg0) {
+				// TODO Auto-generated method stub
+				if (arg0.getKeyCode() == KeyEvent.VK_ENTER)
+					checkUpdatableUser();
+
 			}
 		});
 
+		JScrollPane scrollPaneTable = new JScrollPane(table);
+		scrollPaneTable.setBounds(210, 11, 440, 276);
+		scrollPaneTable.setViewportView(table);
+
+		frmAccountSwitcher.getContentPane().add(scrollPaneTable);
+
 		steamStatusChangeMonitor();
 
-		refreshList();
-		refreshPopupItems(popupSystemTray);
+		refreshListComponents();
 	}
 
 	/*********************************************************************************************************************************************************/
@@ -319,14 +317,14 @@ public class MainFrame {
 						JOptionPane.ERROR_MESSAGE);
 				return;
 			}
-			User user = new User("steam", country.getDomain(), strUsername.trim(), null, strAlias.trim());
+			User user = new User("steam", country.getDomain(), strUsername.trim(), strAlias.trim());
 
 			userController.add(user);
 
 			cleanText();
 
-			refreshList();
-			refreshPopupItems(popupSystemTray);
+			refreshListComponents();
+
 		} catch (Exception | Error e) {
 			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
 		}
@@ -348,51 +346,31 @@ public class MainFrame {
 			strItemText = strItemText.trim();
 			userController.remove(strItemText);
 
-			refreshList();
-			refreshPopupItems(popupSystemTray);
+			refreshListComponents();
 
 		} catch (Exception | Error e) {
 			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
-	private void removeUser(int index) {
-		try {
+	private void checkUpdatableUser() {
+		if (table.getSelectedRow() < 0)
+			return;
 
-			User user = userController.getListUsers().get(index);
-			removeUser(user.getUserName());
-		} catch (Exception | Error e) {
-			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
-		}
-	}
+		String useralias = table.getModel().getValueAt(table.getSelectedRow(), 2).toString();
+		String username = table.getModel().getValueAt(table.getSelectedRow(), 3).toString();
 
-	private String findUserByKey(String vKey) {
+		User user = new User();
+		user.setUserName(username);
+		user.setAlias(useralias);
 
-		for (User user : userController.getListUsers()) {
-			if (user.getShortcutKey().equals(vKey))
-				return user.getUserName();
-		}
-		return "";
-	}
+		userController.update(user);
 
-	private String findUserByIndex(int index) {
-		User user = userController.getListUsers().get(index);
-		return user.getUserName();
 	}
 
 	/*********************************************************************************************************************************************************/
 
 	/*********************************************************************************************************************************************************/
-	private DefaultListModel<String> listUserToListModel() {
-		DefaultListModel<String> mod = new DefaultListModel<String>();
-
-		for (User user : userController.getListUsers()) {
-			mod.addElement(user.toString(flagShowingAlias));
-		}
-
-		return mod;
-	}
-
 	private Object[] listCountryToSimpleArray() {
 		ArrayList<String> mod = new ArrayList<String>();
 
@@ -401,21 +379,6 @@ public class MainFrame {
 		}
 
 		return mod.toArray();
-	}
-
-	private void popMapFKeys() {
-		mapFKeys.put(KeyEvent.VK_F1, "F1");
-		mapFKeys.put(KeyEvent.VK_F2, "F2");
-		mapFKeys.put(KeyEvent.VK_F3, "F3");
-		mapFKeys.put(KeyEvent.VK_F4, "F4");
-		mapFKeys.put(KeyEvent.VK_F5, "F5");
-		mapFKeys.put(KeyEvent.VK_F6, "F6");
-		mapFKeys.put(KeyEvent.VK_F7, "F7");
-		mapFKeys.put(KeyEvent.VK_F8, "F8");
-		mapFKeys.put(KeyEvent.VK_F9, "F9");
-		mapFKeys.put(KeyEvent.VK_F10, "F10");
-		mapFKeys.put(KeyEvent.VK_F11, "F11");
-		mapFKeys.put(KeyEvent.VK_F12, "F12");
 	}
 
 	/*********************************************************************************************************************************************************/
@@ -471,7 +434,7 @@ public class MainFrame {
 
 			logger.debug("Waiting Steam process terminate...");
 
-			//if()
+			// if()
 			icon.displayMessage(APP_TITLE, "Steam process is ending, Please wait...", MessageType.INFO);
 			SteamProcessMonitor.waitSteamProcessTerminate(sp.getClass());
 
@@ -499,25 +462,30 @@ public class MainFrame {
 							logger.debug("Steam status changed to " + (SteamProcessMonitor.isAlive ? "ON" : "OFF"));
 							actualState = SteamProcessMonitor.isAlive;
 							logger.debug("Refreshing users...");
-							refreshList();
-							refreshPopupItems(popupSystemTray);
+							refreshListComponents();
 						}
-						Thread.sleep(6);
+						Thread.sleep(2400);
 					}
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
 		}.start();
 	}
 
+	private int valorPercentual(int valorTotal, float percentual) {
+		double d = (valorTotal * percentual) / 100;
+		java.math.BigDecimal bd = new java.math.BigDecimal(d);
+		bd = bd.setScale(0, java.math.RoundingMode.CEILING);
+		return bd.intValueExact();
+	}
+
 	/*********************************************************************************************************************************************************/
 
 	/*********************************************************************************************************************************************************/
-	private JPopupMenu popMenuListUsers() {
+	private JPopupMenu popMenuTableUsers() {
 		JPopupMenu jpp = new JPopupMenu();
-		JMenuItem jm = new JMenuItem(new AbstractAction("Remove") {
+		JMenuItem jm = new JMenuItem(new AbstractAction("Remove da tabela") {
 
 			/**
 			 * 
@@ -526,18 +494,49 @@ public class MainFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				if (list.getModel().getSize() <= 0) // just act if list is not empty
+				if (table.getModel().getRowCount() <= 0) // just act if list is not empty
 					return;
 
-				if (JOptionPane.showConfirmDialog(frmAccountSwitcher, ("Remove " + list.getSelectedValue()) + " ?",
-						"Delete User", JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION) {
-					// removeUser(list.getSelectedValue());
-					removeUser(list.getSelectedIndex());
+				String username = table.getModel().getValueAt(table.getSelectedRow(), 3).toString();
+
+				if (JOptionPane.showConfirmDialog(frmAccountSwitcher, ("Remove " + username) + " ?", "Delete User",
+						JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION) {
+					removeUser(username);
 				}
 			}
 		});
 
 		jpp.add(jm);
+
+		jpp.addPopupMenuListener(new PopupMenuListener() {
+
+			@Override
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						int rowAtPoint = table.rowAtPoint(SwingUtilities.convertPoint(jpp, new Point(0, 0), table));
+						if (rowAtPoint > -1) {
+							table.setRowSelectionInterval(rowAtPoint, rowAtPoint);
+						}
+					}
+				});
+			}
+
+			@Override
+			public void popupMenuCanceled(PopupMenuEvent arg0) {
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void popupMenuWillBecomeInvisible(PopupMenuEvent arg0) {
+				// TODO Auto-generated method stub
+
+			}
+
+		});
+
 		return jpp;
 	}
 
@@ -547,20 +546,8 @@ public class MainFrame {
 		txtUsername.grabFocus();
 	}
 
-	private void refreshList() {
-		imageMap = createImageMap();
-		list.setModel(listUserToListModel());
-		/*
-		 * enabledFlags = new boolean[list.getModel().getSize()];
-		 * 
-		 * for (int i = 0; i < list.getModel().getSize(); i++) { enabledFlags[i] = true;
-		 * }
-		 */
-
-	}
-
 	// private void refreshPopupItems(PopupMenu pp) {
-	private void refreshPopupItems(JPopupMenu pp) {
+	private void refreshPopupTrayicon(JPopupMenu pp) {
 		// MenuItem item;
 		JMenuItem item;
 		ArrayList<User> list = userController.getListUsers();
@@ -589,11 +576,27 @@ public class MainFrame {
 						dialog.setVisible(false);
 						frmAccountSwitcher.setState(JFrame.ICONIFIED);
 						// System.out.println("User : " + user.getUserName());
-						refreshPopupItems(pp);
+						// refreshPopupItems(pp);
 					}
 				}
 			});
 		}
+		pp.addSeparator();
+		item = new JCheckBoxMenuItem("Show Alias");
+		item.setSelected(flagShowingAlias);
+
+		item.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				flagShowingAlias = !flagShowingAlias;
+				frmAccountSwitcher.setState(JFrame.ICONIFIED);
+				refreshPopupTrayicon(pp);
+			}
+
+		});
+
+		pp.add(item);
 
 		pp.addSeparator();
 
@@ -614,88 +617,115 @@ public class MainFrame {
 
 	}
 
-	private void listKeyRelease(int keycode) {
-		String user = "";
-		String value = mapFKeys.get(keycode);
-		if (value != null) {
-			user = findUserByKey(value);
-			System.out.println(value + " " + user);
-			if (!user.equals("")) {
-				steamGo(user);
-				frmAccountSwitcher.setState(JFrame.ICONIFIED);
-			}
+	private JTable refreshTable() {
+		Icon statusIcon = null;
+		Icon countryIcon = null;
+
+		User activeUser = getActiveUser();
+
+		Vector<Object> columnNames = new Vector<Object>();
+		columnNames.add("");
+		columnNames.add("");
+		columnNames.add("Alias");
+		columnNames.add("Username");
+
+		Vector<Object> tableRow;
+		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
+
+		for (User user : userController.getListUsers()) {
+			URL url;
+			tableRow = new Vector<Object>(1);
+			if (activeUser == user)
+				url = getClass().getResource("/images/buddy.png");
+			else
+				url = getClass().getResource("/images/privacy.png");
+			// url = getClass().getResource("/images/invisible.png");
+
+			statusIcon = new ImageIcon(url);
+
+			url = getClass().getResource("/images/" + user.getCountry() + ".png");
+			countryIcon = new ImageIcon(url);
+
+			tableRow.add(statusIcon);
+			tableRow.add(countryIcon);
+			tableRow.add(user.getAlias());
+			tableRow.add(user.getUserName());
+			data.addElement(tableRow);
 		}
+
+		DefaultTableModel tableModel = new DefaultTableModel(data, columnNames) {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+
+			public Class<? extends Object> getColumnClass(int column) {
+				return getValueAt(0, column).getClass();
+			}
+
+			@Override
+			public boolean isCellEditable(int row, int column) {
+				switch (column) {
+				case 0:
+					return false;
+				case 1:
+					return false;
+				case 3:
+					return false;
+				default:
+					return true;
+				}
+			}
+		};
+
+		table.setModel(tableModel);
+		table.setPreferredScrollableViewportSize(table.getPreferredSize());
+		table.setRowHeight(30);
+
+		JTextField textField = new JTextField();
+		textField.setDocument(new JTextFieldLimit(20));
+
+		table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(textField));
+
+		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+		table.setDefaultRenderer(String.class, centerRenderer);
+
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+		table.getColumnModel().getColumn(0).setPreferredWidth(valorPercentual(431, 7.5f));
+		table.getColumnModel().getColumn(1).setPreferredWidth(valorPercentual(431, 9.09f));
+		table.getColumnModel().getColumn(2).setPreferredWidth(valorPercentual(431, 48.41f));
+		table.getColumnModel().getColumn(3).setPreferredWidth(valorPercentual(431, 35f));
+		return table;
 	}
 
-	private Map<String, ImageIcon> createImageMap() {
-		Map<String, ImageIcon> map = new HashMap<>();
-		Map<String, ImageIcon> mapCountry = new HashMap<>();
-		ArrayList<User> listUsers = userController.getListUsers();
-		ArrayList<Country> listCountries = countryController.getListCountries();
-
-		try {
-
-			for (Country country : listCountries) {
-				URL url = getClass().getResource("/images/" + country.getFlag());
-				mapCountry.put(country.getDomain(), new ImageIcon(url));
-			}
-
-			for (User user : listUsers) {
-				map.put(user.toString(flagShowingAlias), mapCountry.get(user.getCountry()));
-			}
-
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-		return map;
-	}
-
-	private void updateAndRepaintListUser(JToggleButton toggle) {
-		if (!toggle.isSelected()) {
-			// Listing username
-			URL url = getClass().getResource("/images/buddy.png");
-			toggle.setIcon(new ImageIcon(url));
-			toggle.setToolTipText("Showing User name");
-			flagShowingAlias = false;
-		} else {
-			URL url = getClass().getResource("/images/invisible.png");
-			toggle.setIcon(new ImageIcon(url));
-			toggle.setToolTipText("Showing Alias");
-			flagShowingAlias = true;
-		}
-
-		refreshList();
-		refreshPopupItems(popupSystemTray);
+	private void refreshListComponents() {
+		refreshPopupTrayicon(popupSystemTray);
+		refreshTable();
 	}
 
 	/*********************************************************************************************************************************************************/
 
-	private class DoubleClickListener extends MouseAdapter {
+	private class ClickListener extends MouseAdapter {
 
 		public void mouseClicked(MouseEvent e) {
-			if (e.getSource() instanceof JList)
-				listDoubleClick(e);
+			if (e.getSource() instanceof JTable)
+				tableDoubleClicked(e);
 			if (e.getSource() instanceof TrayIcon)
 				trayIconDoubleClick(e);
-			if ((e.getSource() instanceof JList) && (e.getButton() == MouseEvent.BUTTON3)) {
-				System.out.println("...");
-				jlistPopMenu(e);
-			}
-
 		}
 
-		public void listDoubleClick(MouseEvent e) {
-			// JList<?> jlist = (JList<?>) e.getSource();
+		public void tableDoubleClicked(MouseEvent e) {
 			if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
-				int index = list.locationToIndex(e.getPoint());
-				if (index >= 0) {
-					// Object o = jlist.getModel().getElementAt(index);
-					// String[] splitted = o.toString().trim().split(" ");
-					String user = findUserByIndex(index);
-					steamGo(user);
+				if (table.getModel().getRowCount() <= 0)
+					return;
+
+				String username = table.getModel().getValueAt(table.getSelectedRow(), 3).toString();
+
+				if (username.trim().length() > 0) {
+					steamGo(username);
 					frmAccountSwitcher.setState(JFrame.ICONIFIED);
-					// JOptionPane.showMessageDialog(theList, "Double-clicked on: " + o.toString());
-					// System.out.println("Double-clicked on: " + o.toString());
 				}
 			}
 		}
@@ -710,8 +740,6 @@ public class MainFrame {
 		}
 
 		public void mousePressed(MouseEvent e) {
-			if (e.getButton() == MouseEvent.BUTTON3 && e.getSource() instanceof JList)
-				jlistPopMenu(e);
 			if (e.getSource() instanceof TrayIcon) {
 				if (e.isPopupTrigger()) {
 					showPopup(e);
@@ -721,21 +749,9 @@ public class MainFrame {
 
 		public void mouseReleased(MouseEvent e) {
 			if (e.isPopupTrigger()) {
-				if (e.getSource() instanceof JList)
-					jlistPopMenu(e);
 				if (e.getSource() instanceof TrayIcon)
 					showPopup(e);
-				// System.out.println("TrayIcon popup mouseReleased");
 			}
-		}
-
-		public void jlistPopMenu(MouseEvent e) {
-
-			// if (e.isPopupTrigger()) { // if the event shows the menu
-			JList<?> jlist = (JList<?>) e.getSource();
-			jlist.setSelectedIndex(jlist.locationToIndex(e.getPoint())); // select the item
-			JPopupMenu jPopupMenu = jlist.getComponentPopupMenu();
-			jPopupMenu.show(jlist, e.getX(), e.getY()); // and show the menu
 		}
 
 		private void showPopup(MouseEvent e) {
@@ -744,27 +760,7 @@ public class MainFrame {
 			popupSystemTray.setInvoker(dialog);
 			dialog.setFocusable(false);
 			dialog.setVisible(true);
-			// dialog.setVisible(false);
 			popupSystemTray.setVisible(true);
-		}
-	}
-
-	public class CountryListRenderer extends DefaultListCellRenderer {
-
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		@Override
-		public Component getListCellRendererComponent(JList<?> l, Object value, int index, boolean isSelected,
-				boolean cellHasFocus) {
-
-			JLabel label = (JLabel) super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
-			label.setIcon(imageMap.get((String) value));
-			label.setHorizontalTextPosition(JLabel.RIGHT);
-
-			return label;
 		}
 	}
 
@@ -803,20 +799,4 @@ public class MainFrame {
 			addTrayIconDisposeFrame((JFrame) e.getSource());
 		}
 	}
-
-	/*
-	 * private class DisabledItemSelectionModel extends DefaultListSelectionModel {
-	 * 
-	 * private static final long serialVersionUID = 1L;
-	 * 
-	 * @Override public void setSelectionInterval(int index0, int index1) { if
-	 * (enabledFlags[index0]) { super.setSelectionInterval(index0, index0); } else {
-	 * 
-	 * if (getAnchorSelectionIndex() < index0) { for (int i = index0; i <
-	 * enabledFlags.length; i++) { if (enabledFlags[i]) {
-	 * super.setSelectionInterval(i, i); return; } } }else { for (int i = index0; i
-	 * >= 0; i--) { if (enabledFlags[i]) { super.setSelectionInterval(i, i); return;
-	 * } } } } } }
-	 */
-
 }

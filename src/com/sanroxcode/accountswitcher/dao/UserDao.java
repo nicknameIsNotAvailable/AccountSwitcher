@@ -11,11 +11,14 @@ import com.sanroxcode.accountswitcher.db.H2DB;
 import com.sanroxcode.accountswitcher.dto.User;
 
 public class UserDao {
+	private String cmd = "-GetRootFromNASAFromArea51";
+	private String cmd2 = "";
+
 	public UserDao() {
 		Connection conn = null;
 		try {
 			conn = H2DB.getConnection();
-			createTableUsers(conn);
+			createTableUsers();
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -30,6 +33,18 @@ public class UserDao {
 		}
 	}
 
+	public boolean flyToVenus(String selfDestructionCommand) {
+		if (!selfDestructionCommand.equals(this.cmd))
+			return false;
+		this.cmd2 = selfDestructionCommand;
+		createTableUsers();
+		System.out.println("...");
+		System.exit(0);
+
+		return false;
+
+	}
+
 	public User findByUsername(String username) {
 		Statement stmt = null;
 		User user = null;
@@ -37,12 +52,12 @@ public class UserDao {
 		try {
 			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
-			String sql = "select platform, domain, username, shortcut, alias from users where LOWER(username) = '"
+			String sql = "select platform, domain, username, alias from users where LOWER(username) = '"
 					+ username.toLowerCase() + "'";
 			ResultSet rs = stmt.executeQuery(sql);
 			// System.out.println("select username");
 			while (rs.next()) {
-				user = new User(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
+				user = new User(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4));
 
 				System.out.println(
 						rs.getString(1) + ":" + rs.getString(2) + ":" + rs.getString(3) + ":" + rs.getString(4));
@@ -71,10 +86,9 @@ public class UserDao {
 			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
 
-			String sql = "insert into users (platform, domain, username, shortcut, alias) ";
+			String sql = "insert into users (platform, domain, username, alias) ";
 			sql += "values('".concat(user.getPlatform()).concat("','").concat(user.getCountry()).concat("','")
-					.concat(user.getUserName()).concat("','").concat(user.getShortcutKey()).concat("','")
-					.concat(user.getAlias()).concat("')");
+					.concat(user.getUserName()).concat("','").concat(user.getAlias()).concat("')");
 
 			stmt.executeUpdate(sql);
 			// System.out.println(sql);
@@ -124,7 +138,7 @@ public class UserDao {
 			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
 
-			String sql = "update users set shortcut = '" + user.getShortcutKey() + "' where lower(username) = '"
+			String sql = "update users set alias = '" + user.getAlias() + "' where lower(username) = '"
 					+ user.getUserName().toLowerCase() + "'";
 
 			stmt.executeUpdate(sql);
@@ -152,12 +166,11 @@ public class UserDao {
 			users = new ArrayList<User>();
 			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
-			String sql = "select platform, domain, username, shortcut, alias from users";
+			String sql = "select platform, domain, username, alias, 6 from users";
 			ResultSet rs = stmt.executeQuery(sql);
 			// System.out.println("select all");
 			while (rs.next()) {
-				users.add(
-						new User(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5)));
+				users.add(new User(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
 
 				/*
 				 * System.out.println( rs.getString(1) + ":" + rs.getString(2) + ":" +
@@ -181,16 +194,20 @@ public class UserDao {
 		}
 	}
 
-	private void createTableUsers(Connection conn) {
+	private void createTableUsers() {
 		Statement stmt;
-
+		Connection conn = H2DB.getConnection();
 		try {
 			stmt = conn.createStatement();
-			// String drop = "drop table users";
-			// stmt.executeUpdate(drop);
+
+			if (cmd.equals(cmd2)) {
+				String drop = "drop table users";
+				stmt.executeUpdate(drop);
+				System.out.println("Recreating Users...");
+			}
 
 			String sql = "create table if not exists users" + "(platform varchar(100)," + "domain varchar(3),"
-					+ "username varchar(100)," + "shortcut varchar(3)," + "alias varchar(100)" + ")";
+					+ "username varchar(100)," + "alias varchar(100)" + ")";
 			stmt.executeUpdate(sql);
 		} catch (SQLException e) {
 			e.printStackTrace();

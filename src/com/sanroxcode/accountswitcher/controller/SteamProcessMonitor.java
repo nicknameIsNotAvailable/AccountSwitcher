@@ -16,11 +16,16 @@ public final class SteamProcessMonitor {
 			@Override
 			public void run() {
 				try {
+					boolean actualState = isAlive;
 					while (true) {
 						Method meth = c.getMethod("isSteamRunning", Boolean.TYPE);
 						isAlive = (boolean) meth.invoke(null, true);
-
-						Thread.sleep(6);
+						
+						if (actualState!=isAlive) {
+							actualState = isAlive;
+							Thread.sleep(5000);
+						}
+						
 					}
 				} catch (InterruptedException | NoSuchMethodException | SecurityException | IllegalAccessException
 						| IllegalArgumentException | InvocationTargetException e) {

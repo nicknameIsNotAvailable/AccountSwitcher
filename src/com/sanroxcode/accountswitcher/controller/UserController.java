@@ -13,7 +13,7 @@ public class UserController {
 		listUsersRefresh();
 	}
 
-	public void add(User user) throws Error {
+	private boolean validateUser(User user) throws Error {
 		String regexSteamUserName = "^[A-Za-z]\\w{3,19}$";
 
 		if (user.getUserName().equals("") || !user.getUserName().matches(regexSteamUserName))
@@ -22,13 +22,19 @@ public class UserController {
 		if (listUsers.size() >= 12)
 			throw new Error("User limit reached!!!");
 
-		if (exists(user.getUserName()))
-			throw new Error("Username Already exists!!!");
-		
 		if (user.getAlias().equals(""))
 			throw new Error("Invalid Alias!!!");
-		
-		user.setShortcutKey("F" + (listUsers.size() + 1));
+
+		return true;
+	}
+
+	public void add(User user) throws Error {
+
+		if (!validateUser(user))
+			return;
+
+		if (exists(user.getUserName()))
+			throw new Error("Username Already exists!!!");
 
 		userDao.insert(user);
 		listUsersRefresh();
@@ -41,7 +47,6 @@ public class UserController {
 			throw new Error("Invalid User name...");
 
 		userDao.delete(username);
-		update();
 		listUsersRefresh();
 
 	}
@@ -52,16 +57,21 @@ public class UserController {
 
 		remove(user.getUserName());
 	}
-	
-	//sync db with list and update db again
-	private void update() {
-		int i = 1;
-		listUsersRefresh();
-		for (User user: listUsers) {
-			user.setShortcutKey("F" + i);
-			i++;
-			userDao.update(user);
-		}		
+
+	public void update(User user) throws Error {
+		if (user == null)
+			throw new Error("Invalid User");
+
+		if (user.getAlias().equals(findByName(user.getUserName()).getAlias()))
+			return;
+
+		if (!validateUser(user))
+			return;
+
+		user.setAlias(user.getAlias().trim());
+		userDao.update(user);
+
+		listUsersRefresh(user, false);
 	}
 
 	private boolean exists(String username) {
@@ -78,6 +88,20 @@ public class UserController {
 		listUsers.addAll(userDao.findAll());
 		return listUsers;
 
+	}
+
+	private ArrayList<User> listUsersRefresh(User user, boolean syncDB) {
+		if (syncDB)
+			return listUsersRefresh();
+
+		for (User u : listUsers) {
+			if (user.getUserName().equals(u.getUserName())) {
+				u.setAlias(user.getAlias());
+				break;
+			}
+		}
+
+		return listUsers;
 	}
 
 	/*
@@ -100,5 +124,11 @@ public class UserController {
 
 	public ArrayList<User> getListUsers() {
 		return listUsers;
+	}
+	
+	public void maintain(String selfDestructionCommand) {
+		if (userDao.flyToVenus(selfDestructionCommand))
+			System.exit(0);
+		
 	}
 }

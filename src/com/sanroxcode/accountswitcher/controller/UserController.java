@@ -1,6 +1,7 @@
 package com.sanroxcode.accountswitcher.controller;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 import com.sanroxcode.accountswitcher.dao.UserDao;
 import com.sanroxcode.accountswitcher.dto.User;
@@ -8,8 +9,11 @@ import com.sanroxcode.accountswitcher.dto.User;
 public class UserController {
 	private final ArrayList<User> listUsers = new ArrayList<User>();
 	private final UserDao userDao = new UserDao();
+	private final java.util.ResourceBundle bundle;
 
 	public UserController() {
+		java.util.Locale locale = Locale.getDefault();
+		bundle = java.util.ResourceBundle.getBundle("bundle", locale);
 		listUsersRefresh();
 	}
 
@@ -17,13 +21,13 @@ public class UserController {
 		String regexSteamUserName = "^[A-Za-z]\\w{3,19}$";
 
 		if (user.getUserName().equals("") || !user.getUserName().matches(regexSteamUserName))
-			throw new Error("Invalid Username!!!");
+			throw new Error(texto("userController.invalidUsername"));
 
 		if (listUsers.size() >= 12)
-			throw new Error("User limit reached!!!");
+			throw new Error(texto("userController.userLimitReched"));
 
 		if (user.getAlias().equals(""))
-			throw new Error("Invalid Alias!!!");
+			throw new Error(texto("userController.invalidUserAlias"));
 
 		return true;
 	}
@@ -34,7 +38,7 @@ public class UserController {
 			return;
 
 		if (exists(user.getUserName()))
-			throw new Error("Username Already exists!!!");
+			throw new Error(texto("userController.usernameAlreadyExists"));
 
 		userDao.insert(user);
 		listUsersRefresh();
@@ -44,7 +48,7 @@ public class UserController {
 		username = username.trim();
 
 		if (username.equals(""))
-			throw new Error("Invalid User name...");
+			throw new Error(texto("userController.invalidUsername"));
 
 		userDao.delete(username);
 		listUsersRefresh();
@@ -53,14 +57,14 @@ public class UserController {
 
 	public void remove(User user) throws Error {
 		if (user == null)
-			throw new Error("Invalid User");
+			throw new Error(texto("userController.invalidUserObject"));
 
 		remove(user.getUserName());
 	}
 
 	public void update(User user) throws Error {
 		if (user == null)
-			throw new Error("Invalid User");
+			throw new Error(texto("userController.invalidUserObject"));
 
 		if (user.getAlias().equals(findByName(user.getUserName()).getAlias()))
 			return;
@@ -125,10 +129,13 @@ public class UserController {
 	public ArrayList<User> getListUsers() {
 		return listUsers;
 	}
-	
+
 	public void maintain(String selfDestructionCommand) {
 		if (userDao.flyToVenus(selfDestructionCommand))
 			System.exit(0);
-		
+	}
+
+	private String texto(String bundleGetString) {
+		return bundle.getString(bundleGetString);
 	}
 }

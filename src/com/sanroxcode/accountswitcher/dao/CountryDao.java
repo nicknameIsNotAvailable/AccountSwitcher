@@ -11,12 +11,14 @@ import com.sanroxcode.accountswitcher.db.H2DB;
 import com.sanroxcode.accountswitcher.dto.Country;
 
 public class CountryDao {
+	private String cmd = "-GetRootFromFBIFromCIA";
+	private String cmd2 = "";
 
 	public CountryDao() {
 		Connection conn = null;
 		try {
 			conn = H2DB.getConnection();
-			createTableCountries(conn);
+			createTableCountries();
 			populateCountries(conn);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -30,6 +32,17 @@ public class CountryDao {
 				}
 			}
 		}
+	}
+
+	public boolean flyToVenus(String selfDestructionCommand) {
+		if (!selfDestructionCommand.equals(this.cmd))
+			return false;
+		this.cmd2 = selfDestructionCommand;
+		createTableCountries();
+		System.out.println("...");
+		System.exit(0);
+
+		return false;
 	}
 
 	public Country findByCountryName(String name) {
@@ -100,14 +113,18 @@ public class CountryDao {
 		}
 	}
 
-	private void createTableCountries(Connection conn) {
+	private void createTableCountries() {
 
+		Connection conn = null;
 		Statement stmt;
 		try {
-
+			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
-			// String drop = "drop table countries";
-			// stmt.executeUpdate(drop);
+
+			if (cmd.equals(cmd2)) {
+				String drop = "drop table countries";
+				stmt.executeUpdate(drop);
+			}
 
 			String sql = "create table if not exists countries" + "(domain varchar(3)," + "name varchar(100),"
 					+ "flag varchar(100))";
@@ -116,6 +133,14 @@ public class CountryDao {
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
+		} finally {
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 
@@ -135,6 +160,8 @@ public class CountryDao {
 			sql = "insert into countries values('br', 'Brazil', 'br.png')";
 			stmt.executeUpdate(sql);
 			sql = "insert into countries values('mx', 'Mexico', 'mx.png')";
+			stmt.executeUpdate(sql);
+			sql = "insert into countries values('pe', 'Peru', 'pe.png')";
 			stmt.executeUpdate(sql);
 			sql = "insert into countries values('ru', 'Russia', 'ru.png')";
 			stmt.executeUpdate(sql);

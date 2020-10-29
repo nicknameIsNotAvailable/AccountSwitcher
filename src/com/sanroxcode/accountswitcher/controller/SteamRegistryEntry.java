@@ -105,13 +105,6 @@ public class SteamRegistryEntry extends RegistryEntry {
 			logger.debug("System exit : active username null");
 			System.exit(1);
 		}
-		/*
-		 * System.out.println(
-		 * "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-		 * ); System.out.println("retorno = " + retorno); System.out.println(
-		 * "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-		 * );
-		 */
 		return retorno;
 	}
 

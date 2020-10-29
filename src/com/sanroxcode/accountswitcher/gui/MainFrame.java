@@ -1,14 +1,7 @@
 package com.sanroxcode.accountswitcher.gui;
 
+import java.awt.AWTException;
 import java.awt.EventQueue;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.WindowConstants;
-import javax.swing.JLabel;
 import java.awt.Font;
 import java.awt.Point;
 //import java.awt.MenuItem;
@@ -17,14 +10,7 @@ import java.awt.SystemTray;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.TrayIcon.MessageType;
-
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -36,16 +22,31 @@ import java.awt.event.WindowFocusListener;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Vector;
-import java.awt.event.ActionEvent;
-import java.awt.AWTException;
 
-import javax.swing.JComboBox;
-import javax.swing.JDialog;
 import javax.swing.AbstractAction;
 import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -68,14 +69,12 @@ import com.sanroxcode.accountswitcher.dto.User;
 import com.sanroxcode.accountswitcher.util.JTextFieldLimit;
 import com.sanroxcode.accountswitcher.util.Lock;
 
-import javax.swing.SwingUtilities;
-import javax.swing.JTable;
-
 public class MainFrame {
 
 	private static String helloWorldText = "";
 	private JFrame frmAccountSwitcher;
 	private JTextField txtUsername;
+	private ResourceBundle bundle;
 
 	private TrayIcon icon;
 	private final JTextField txtAlias = new JTextField();
@@ -88,7 +87,7 @@ public class MainFrame {
 	private final static String osName = System.getProperty("os.name");
 	private final static String APP_TITLE = "Account Switcher - " + osName;
 	private static final Logger logger = LogManager.getLogger(MainFrame.class);
-	JDialog dialog = new JDialog();
+	private JDialog dialog = new JDialog();
 	private JTable table;
 
 	/**
@@ -155,9 +154,12 @@ public class MainFrame {
 	private static void maintain() {
 		if (helloWorldText.equals(""))
 			return;
-		UserController controller = new UserController();
-		controller.maintain(helloWorldText);
-		controller = null;
+		UserController uController = new UserController();
+		uController.maintain(helloWorldText);
+		uController = null;
+		CountryController cController = new CountryController();
+		cController.maintain(helloWorldText);
+		cController = null;
 		System.gc();
 	}
 
@@ -191,6 +193,10 @@ public class MainFrame {
 			frmAccountSwitcher.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 			return;
 		}
+
+		//Locale.setDefault(new Locale("pt"));
+		Locale locale = Locale.getDefault();
+		bundle = ResourceBundle.getBundle("bundle", locale);
 
 		ClickListener cl = new ClickListener();
 
@@ -238,12 +244,12 @@ public class MainFrame {
 		cmbCountry.setBounds(10, 118, 170, 26);
 		panel.add(cmbCountry);
 
-		JLabel lblNewLabel = new JLabel("User Name *");
-		lblNewLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblNewLabel.setBounds(10, 11, 71, 14);
-		panel.add(lblNewLabel);
+		JLabel lblUsername = new JLabel(texto("frmAccountSwitcher.lblUsername.text") + " *");
+		lblUsername.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblUsername.setBounds(10, 11, 126, 14);
+		panel.add(lblUsername);
 
-		JButton btnAddUser = new JButton("Add");
+		JButton btnAddUser = new JButton(texto("frmAccountSwitcher.btnAddUser.text"));
 		btnAddUser.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				addUser(txtUsername.getText(), cmbCountry.getSelectedItem().toString(), txtAlias.getText());
@@ -252,20 +258,20 @@ public class MainFrame {
 		btnAddUser.setBounds(47, 160, 89, 26);
 		panel.add(btnAddUser);
 
-		JLabel lblNewLabel_1 = new JLabel("Country");
-		lblNewLabel_1.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblNewLabel_1.setBounds(10, 99, 71, 14);
-		panel.add(lblNewLabel_1);
+		JLabel lblCountry = new JLabel(texto("frmAccountSwitcher.lblCountry.text"));
+		lblCountry.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblCountry.setBounds(10, 99, 71, 14);
+		panel.add(lblCountry);
 
-		JLabel lblNewLabel_2 = new JLabel("Alias *");
-		lblNewLabel_2.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblNewLabel_2.setBounds(10, 52, 46, 14);
-		panel.add(lblNewLabel_2);
+		JLabel lblAlias = new JLabel(texto("frmAccountSwitcher.lblAlias.text") + " *");
+		lblAlias.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblAlias.setBounds(10, 52, 126, 14);
+		panel.add(lblAlias);
 
 		txtAlias.setBounds(10, 68, 170, 26);
 		txtAlias.setDocument(new JTextFieldLimit(20));
 		txtAlias.setColumns(10);
-		panel.add(txtAlias);		
+		panel.add(txtAlias);
 
 		table = new JTable();
 		table.setComponentPopupMenu(popMenuTableUsers());
@@ -302,10 +308,10 @@ public class MainFrame {
 
 		frmAccountSwitcher.getContentPane().add(scrollPaneTable);
 
-		
 		steamStatusChangeMonitor();
 
 		refreshListComponents();
+
 	}
 
 	/*********************************************************************************************************************************************************/
@@ -314,8 +320,8 @@ public class MainFrame {
 		Country country = countryController.findByName(strCountryName.trim());
 		try {
 			if (country == null) {
-				JOptionPane.showMessageDialog(frmAccountSwitcher, "Country does not exists...", "Error",
-						JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(frmAccountSwitcher, texto("frmAccountSwitcher.countryDoesNotExist"),
+						texto("frmAccountSwitcher.error"), JOptionPane.ERROR_MESSAGE);
 				return;
 			}
 			User user = new User("steam", country.getDomain(), strUsername.trim(), strAlias.trim());
@@ -327,7 +333,8 @@ public class MainFrame {
 			refreshListComponents();
 
 		} catch (Exception | Error e) {
-			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), texto("frmAccountSwitcher.failed"),
+					JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
@@ -350,7 +357,8 @@ public class MainFrame {
 			refreshListComponents();
 
 		} catch (Exception | Error e) {
-			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), texto("frmAccountSwitcher.failed"),
+					JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
@@ -382,6 +390,10 @@ public class MainFrame {
 		return mod.toArray();
 	}
 
+	private String texto(String bundleString) {
+		return bundle.getString(bundleString);
+	}
+
 	/*********************************************************************************************************************************************************/
 
 	/*********************************************************************************************************************************************************/
@@ -391,7 +403,7 @@ public class MainFrame {
 		String strUser = SteamRegistryEntry.getSteamActiveUsername();
 
 		if (strUser == null) {
-			JOptionPane.showMessageDialog(frmAccountSwitcher, "Please Check steam installation.");
+			JOptionPane.showMessageDialog(frmAccountSwitcher, texto("frmAccountSwitcher.steamInstallation"));
 			return user;
 		}
 
@@ -424,7 +436,7 @@ public class MainFrame {
 
 		try {
 			if (isActiveUser(user)) {
-				JOptionPane.showMessageDialog(frmAccountSwitcher, "User already active.");
+				JOptionPane.showMessageDialog(frmAccountSwitcher, texto("frmAccountSwitcher.userAlreadyActive"));
 				return false;
 			}
 
@@ -436,7 +448,7 @@ public class MainFrame {
 			logger.debug("Waiting Steam process terminate...");
 
 			// if()
-			icon.displayMessage(APP_TITLE, "Steam process is ending, Please wait...", MessageType.INFO);
+			icon.displayMessage(APP_TITLE, texto("frmAccountSwitcher.waitSteamProcessEnd"), MessageType.INFO);
 			SteamProcessMonitor.waitSteamProcessTerminate(sp.getClass());
 
 			logger.debug("Try start steam process...");
@@ -445,7 +457,7 @@ public class MainFrame {
 
 		} catch (InterruptedException | IOException e) {
 			logger.error(e.getMessage());
-			JOptionPane.showMessageDialog(frmAccountSwitcher, "Error on start steam client...", APP_TITLE,
+			JOptionPane.showMessageDialog(frmAccountSwitcher, texto("frmAccountSwitcher.errorSteamStart"), APP_TITLE,
 					JOptionPane.ERROR_MESSAGE);
 		}
 		return false;
@@ -486,7 +498,7 @@ public class MainFrame {
 	/*********************************************************************************************************************************************************/
 	private JPopupMenu popMenuTableUsers() {
 		JPopupMenu jpp = new JPopupMenu();
-		JMenuItem jm = new JMenuItem(new AbstractAction("Remove da tabela") {
+		JMenuItem jm = new JMenuItem(new AbstractAction(texto("frmAccountSwitcher.popMenuTableUsersRemove")) {
 
 			/**
 			 * 
@@ -500,7 +512,9 @@ public class MainFrame {
 
 				String username = table.getModel().getValueAt(table.getSelectedRow(), 3).toString();
 
-				if (JOptionPane.showConfirmDialog(frmAccountSwitcher, ("Remove " + username) + " ?", "Delete User",
+				if (JOptionPane.showConfirmDialog(frmAccountSwitcher,
+						(texto("frmAccountSwitcher.remove") + " " + username) + " ?",
+						texto("frmAccountSwitcher.popMenuTableUsersRemove"),
 						JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION) {
 					removeUser(username);
 				}
@@ -583,7 +597,7 @@ public class MainFrame {
 			});
 		}
 		pp.addSeparator();
-		item = new JCheckBoxMenuItem("Show Alias");
+		item = new JCheckBoxMenuItem(texto("frmAccountSwitcher.trayPop.showAlias"));
 		item.setSelected(flagShowingAlias);
 
 		item.addActionListener(new ActionListener() {
@@ -603,7 +617,7 @@ public class MainFrame {
 		pp.addSeparator();
 
 		// item = new MenuItem("EXIT");
-		item = new JMenuItem("EXIT");
+		item = new JMenuItem(texto("frmAccountSwitcher.trayPop.exit"));
 		item.addActionListener(new ActionListener() {
 
 			@Override
@@ -628,8 +642,8 @@ public class MainFrame {
 		Vector<Object> columnNames = new Vector<Object>();
 		columnNames.add("");
 		columnNames.add("");
-		columnNames.add("Alias");
-		columnNames.add("Username");
+		columnNames.add(texto("frmAccountSwitcher.lblAlias.text"));
+		columnNames.add(texto("frmAccountSwitcher.lblUsername.text"));
 
 		Vector<Object> tableRow;
 		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
@@ -790,7 +804,7 @@ public class MainFrame {
 			if (e.getNewState() == JFrame.ICONIFIED) {
 				addTrayIconDisposeFrame((JFrame) e.getSource());
 				if (flagFirstIconfied) {
-					icon.displayMessage(APP_TITLE, "We are here in system tray...", MessageType.INFO);
+					icon.displayMessage(APP_TITLE, texto("frmAccountSwitcher.trayPop.hereInTray"), MessageType.INFO);
 					flagFirstIconfied = false;
 				}
 			}

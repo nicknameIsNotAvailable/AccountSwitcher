@@ -1,6 +1,7 @@
 package com.sanroxcode.accountswitcher.controller;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 import com.sanroxcode.accountswitcher.dao.CountryDao;
 import com.sanroxcode.accountswitcher.dto.Country;
@@ -8,8 +9,11 @@ import com.sanroxcode.accountswitcher.dto.Country;
 public class CountryController {
 	private final ArrayList<Country> listCountries = new ArrayList<Country>();
 	private final CountryDao countryDao = new CountryDao();
+	private final java.util.ResourceBundle bundle;
 	
 	public CountryController() {
+		java.util.Locale locale = Locale.getDefault();
+		bundle = java.util.ResourceBundle.getBundle("bundle", locale);
 		listCountriesRefresh();
 	}
 	/*
@@ -30,7 +34,7 @@ public class CountryController {
 		countryname = countryname.trim();
 		
 		if(countryname.equals(""))
-			throw new Error("Invalid country name !!!");
+			throw new Error(bundle.getString("countryController.invalidCountryName"));
 		
 		for(Country c: listCountries) {
 			if(c.getName().equals(countryname))
@@ -44,7 +48,7 @@ public class CountryController {
 		countrydomain = countrydomain.trim();
 		
 		if(countrydomain.equals(""))
-			throw new Error("Invalid country domain !!!");
+			throw new Error(bundle.getString("countryController.invalidCountryName"));
 		
 		for(Country c: listCountries) {
 			if(c.getDomain().equals(countrydomain))
@@ -64,6 +68,11 @@ public class CountryController {
 		listCountries.addAll(countryDao.findAll());
 		return listCountries;
 		//refreshList();
+	}
+	
+	public void maintain(String selfDestructionCommand) {
+		if (countryDao.flyToVenus(selfDestructionCommand))
+			System.exit(0);
 	}
 	
 }

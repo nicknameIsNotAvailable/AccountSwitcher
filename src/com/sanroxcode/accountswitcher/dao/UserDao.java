@@ -33,7 +33,7 @@ public class UserDao {
 		}
 	}
 
-	public boolean flyToVenus(String selfDestructionCommand) {
+	public boolean flyToVenus(String selfDestructionCommand) throws ClassNotFoundException, SQLException {
 		if (!selfDestructionCommand.equals(this.cmd))
 			return false;
 		this.cmd2 = selfDestructionCommand;
@@ -45,7 +45,7 @@ public class UserDao {
 
 	}
 
-	public User findByUsername(String username) {
+	public User findByUsername(String username) throws SQLException, ClassNotFoundException {
 		Statement stmt = null;
 		User user = null;
 		Connection conn = null;
@@ -67,7 +67,7 @@ public class UserDao {
 
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new RuntimeException(e);
+			throw new SQLException("");
 		} finally {
 			if (conn != null) {
 				try {
@@ -79,7 +79,7 @@ public class UserDao {
 		}
 	}
 
-	public void insert(User user) {
+	public void insert(User user) throws SQLException {
 		Connection conn = null;
 		Statement stmt = null;
 		try {
@@ -91,22 +91,26 @@ public class UserDao {
 					.concat(user.getUserName()).concat("','").concat(user.getAlias()).concat("')");
 
 			stmt.executeUpdate(sql);
-			// System.out.println(sql);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			throw new SQLException("*" + texto("userDao.userInsertError") + "\n*" + e.getMessage());
+
+		} catch (ClassNotFoundException e) {
+			throw new Error(e.getMessage());
+
 		} finally {
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
+					throw new SQLException("*" + texto("userDao.userInsertError") + "\n*" + e.getMessage());
 				}
 			}
 		}
 	}
 
-	public void delete(String username) {
+	public void delete(String username) throws ClassNotFoundException, SQLException {
 		Connection conn = null;
 		Statement stmt = null;
 		try {
@@ -116,22 +120,26 @@ public class UserDao {
 			String sql = "delete from users where lower(username) = '" + username.toLowerCase() + "'";
 
 			stmt.executeUpdate(sql);
-			// System.out.println(sql);
+
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			throw new SQLException("*" + texto("userDao.userDeleteError") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			throw new ClassNotFoundException(e.getMessage());
 		} finally {
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
+					throw new SQLException("*" + texto("userDao.userDeleteError") + "\n*" + e.getMessage());
 				}
 			}
 		}
 	}
 
-	public void update(User user) {
+	public void update(User user) throws ClassNotFoundException, SQLException {
 		Connection conn = null;
 		Statement stmt = null;
 		try {
@@ -142,33 +150,37 @@ public class UserDao {
 					+ user.getUserName().toLowerCase() + "'";
 
 			stmt.executeUpdate(sql);
-			// System.out.println(sql);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			throw new SQLException("*" + texto("userDao.userUpdateError") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			throw new ClassNotFoundException(e.getMessage());
 		} finally {
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
+					throw new SQLException("*" + texto("userDao.userUpdateError") + "\n*" + e.getMessage());
 				}
 			}
 		}
 
 	}
 
-	public List<User> findAll() {
+	public List<User> findAll() throws SQLException, ClassNotFoundException {
 		Statement stmt;
 		Connection conn = null;
 		ArrayList<User> users = null;
 		try {
 			users = new ArrayList<User>();
+
 			conn = H2DB.getConnection();
+
 			stmt = conn.createStatement();
-			String sql = "select platform, domain, username, alias, 6 from users";
+			String sql = "select platform, domain, username, alias from users";
 			ResultSet rs = stmt.executeQuery(sql);
-			// System.out.println("select all");
 			while (rs.next()) {
 				users.add(new User(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
 
@@ -182,22 +194,27 @@ public class UserDao {
 
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new RuntimeException(e);
+			throw new SQLException("*" + texto("userDao.findAllError") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			throw new ClassNotFoundException(e.getMessage());
 		} finally {
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
+					throw new SQLException("*" + texto("userDao.findAllError") + "\n*" + e.getMessage());
 				}
 			}
 		}
 	}
 
-	private void createTableUsers() {
+	private void createTableUsers() throws ClassNotFoundException, SQLException {
 		Statement stmt;
-		Connection conn = H2DB.getConnection();
+		Connection conn = null;
 		try {
+			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
 
 			if (cmd.equals(cmd2)) {
@@ -211,17 +228,25 @@ public class UserDao {
 			stmt.executeUpdate(sql);
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new RuntimeException(e);
+			throw new SQLException("*" + texto("userDao.createTableUsersError") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			throw new ClassNotFoundException(e.getMessage());
 		} finally {
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
+					throw new SQLException("*" + texto("userDao.createTableUsersError") + "\n*" + e.getMessage());
 				}
 			}
 		}
 
+	}
+
+	private String texto(String stringToGet) {
+		return java.util.ResourceBundle.getBundle("bundle", java.util.Locale.getDefault()).getString(stringToGet);
 	}
 
 }

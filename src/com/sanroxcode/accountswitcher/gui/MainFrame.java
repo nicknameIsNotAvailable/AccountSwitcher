@@ -4,8 +4,6 @@ import java.awt.AWTException;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Point;
-//import java.awt.MenuItem;
-//import java.awt.PopupMenu;
 import java.awt.SystemTray;
 import java.awt.Toolkit;
 import java.awt.TrayIcon;
@@ -19,10 +17,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Vector;
 
@@ -69,6 +67,8 @@ import com.sanroxcode.accountswitcher.dto.User;
 import com.sanroxcode.accountswitcher.util.JTextFieldLimit;
 import com.sanroxcode.accountswitcher.util.Lock;
 
+import static com.sanroxcode.accountswitcher.util.Constants.*;
+
 public class MainFrame {
 
 	private static String helloWorldText = "";
@@ -80,12 +80,11 @@ public class MainFrame {
 	private final JTextField txtAlias = new JTextField();
 	private final SystemTray tray = SystemTray.getSystemTray();
 	private final JPopupMenu popupSystemTray = new JPopupMenu("TRAY");
-	private final UserController userController = new UserController();
-	private final CountryController countryController = new CountryController();
+	private final UserController userController;
+	private final CountryController countryController;
 	private boolean flagFirstIconfied = true;
 	private boolean flagShowingAlias = false;
-	private final static String osName = System.getProperty("os.name");
-	private final static String APP_TITLE = "Account Switcher - " + osName;
+	private static final String osName = System.getProperty("os.name");
 	private static final Logger logger = LogManager.getLogger(MainFrame.class);
 	private JDialog dialog = new JDialog();
 	private JTable table;
@@ -144,8 +143,9 @@ public class MainFrame {
 					window.frmAccountSwitcher.setVisible(true);
 
 				} catch (Exception e) {
-					JOptionPane.showMessageDialog(null, e.getMessage());
 					e.printStackTrace();
+					JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+					System.exit(0);
 				}
 			}
 		});
@@ -154,20 +154,34 @@ public class MainFrame {
 	private static void maintain() {
 		if (helloWorldText.equals(""))
 			return;
-		UserController uController = new UserController();
-		uController.maintain(helloWorldText);
-		uController = null;
-		CountryController cController = new CountryController();
-		cController.maintain(helloWorldText);
-		cController = null;
-		System.gc();
+
+		try {
+			UserController uController;
+			uController = new UserController();
+			uController.maintain(helloWorldText);
+			uController = null;
+			CountryController cController = new CountryController();
+			cController.maintain(helloWorldText);
+			cController = null;
+			System.gc();
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		}
+
 	}
 
 	/**
 	 * Create the application.
+	 * 
+	 * @throws Exception
 	 */
-	public MainFrame() {
+	public MainFrame() throws Exception {
+
+		userController = new UserController();
+		countryController = new CountryController();
+
 		initialize();
+
 	}
 
 	/**
@@ -177,6 +191,8 @@ public class MainFrame {
 	@SuppressWarnings("unchecked")
 	private void initialize() {
 
+		execUpdater();
+		
 		frmAccountSwitcher = new JFrame();
 
 		frmAccountSwitcher.setResizable(false);
@@ -186,6 +202,14 @@ public class MainFrame {
 		frmAccountSwitcher.getContentPane().setLayout(null);
 		frmAccountSwitcher.setLocationRelativeTo(null);
 
+		frmAccountSwitcher.addWindowListener(new java.awt.event.WindowAdapter() {
+			@Override
+			public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+				execUpdater();
+				System.exit(0);
+			}
+		});
+
 		frmAccountSwitcher.setIconImage(
 				Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/changecontrol.png")));
 
@@ -194,8 +218,8 @@ public class MainFrame {
 			return;
 		}
 
-		//Locale.setDefault(new Locale("pt"));
-		Locale locale = Locale.getDefault();
+		// Locale.setDefault(new Locale("pt"));
+		java.util.Locale locale = java.util.Locale.getDefault();
 		bundle = ResourceBundle.getBundle("bundle", locale);
 
 		ClickListener cl = new ClickListener();
@@ -280,14 +304,12 @@ public class MainFrame {
 
 			@Override
 			public void keyTyped(KeyEvent arg0) {
-				// TODO Auto-generated method stub
 				if (arg0.getKeyCode() == KeyEvent.VK_ENTER)
 					checkUpdatableUser();
 			}
 
 			@Override
 			public void keyReleased(KeyEvent arg0) {
-				// TODO Auto-generated method stub
 				if (arg0.getKeyCode() == KeyEvent.VK_ENTER)
 					checkUpdatableUser();
 
@@ -295,7 +317,6 @@ public class MainFrame {
 
 			@Override
 			public void keyPressed(KeyEvent arg0) {
-				// TODO Auto-generated method stub
 				if (arg0.getKeyCode() == KeyEvent.VK_ENTER)
 					checkUpdatableUser();
 
@@ -373,7 +394,12 @@ public class MainFrame {
 		user.setUserName(username);
 		user.setAlias(useralias);
 
-		userController.update(user);
+		try {
+			userController.update(user);
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), texto("frmAccountSwitcher.failed"),
+					JOptionPane.ERROR_MESSAGE);
+		}
 
 	}
 
@@ -383,15 +409,32 @@ public class MainFrame {
 	private Object[] listCountryToSimpleArray() {
 		ArrayList<String> mod = new ArrayList<String>();
 
-		for (Country country : countryController.getListCountries()) {
-			mod.add(country.getName());
+		try {
+			for (Country country : countryController.getListCountries()) {
+				mod.add(country.getName());
+			}
+			return mod.toArray();
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(), texto("frmAccountSwitcher.failed"),
+					JOptionPane.ERROR_MESSAGE);
+			System.exit(0);
 		}
-
-		return mod.toArray();
+		return null;
 	}
 
 	private String texto(String bundleString) {
 		return bundle.getString(bundleString);
+	}
+
+	private void execUpdater() {
+		File updaterJAR = new File(System.getProperty("user.dir") + "\\updater.jar");
+		if (updaterJAR.exists())
+			try {
+				Runtime.getRuntime().exec("java -jar updater.jar");
+			} catch (IOException e) {
+				JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(),
+						texto("frmAccountSwitcher.updaterError"), JOptionPane.ERROR_MESSAGE);
+			}
 	}
 
 	/*********************************************************************************************************************************************************/
@@ -625,6 +668,7 @@ public class MainFrame {
 				tray.remove(icon);
 				frmAccountSwitcher.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frmAccountSwitcher.dispose();
+				execUpdater();
 				System.exit(0);
 			}
 
@@ -811,7 +855,6 @@ public class MainFrame {
 		}
 
 		public void windowClosing(WindowEvent e) {
-			System.out.println("windowClosing");
 			addTrayIconDisposeFrame((JFrame) e.getSource());
 		}
 	}

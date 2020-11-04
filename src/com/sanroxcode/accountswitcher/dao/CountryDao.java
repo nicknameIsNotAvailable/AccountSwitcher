@@ -38,14 +38,19 @@ public class CountryDao {
 		if (!selfDestructionCommand.equals(this.cmd))
 			return false;
 		this.cmd2 = selfDestructionCommand;
-		createTableCountries();
-		System.out.println("...");
-		System.exit(0);
+		try {
+			createTableCountries();
+			System.out.println("Recreating countries...");
+		} catch (ClassNotFoundException | SQLException e) {
+			throw new RuntimeException(e.getMessage());
+		} finally {
+			System.exit(0);
+		}
 
 		return false;
 	}
 
-	public Country findByCountryName(String name) {
+	public Country findByCountryName(String name) throws ClassNotFoundException, SQLException {
 		Statement stmt = null;
 		Country country = null;
 		Connection conn = null;
@@ -65,19 +70,22 @@ public class CountryDao {
 
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new RuntimeException(e);
+			throw new SQLException("*" + texto("frmAccountSwitcher.countryDoesNotExist") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			throw new ClassNotFoundException(e.getMessage());
 		} finally {
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					e.printStackTrace();
+					throw new SQLException(
+							"*" + texto("frmAccountSwitcher.countryDoesNotExist") + "\n*" + e.getMessage());
 				}
 			}
 		}
 	}
 
-	public List<Country> findAll() {
+	public List<Country> findAll() throws ClassNotFoundException, SQLException {
 		Statement stmt;
 		Connection conn = null;
 		ArrayList<Country> countries = null;
@@ -90,7 +98,6 @@ public class CountryDao {
 			// System.out.println("select all");
 			while (rs.next()) {
 				countries.add(new Country(rs.getString(1), rs.getString(2), rs.getString(3)));
-
 				/*
 				 * System.out.println( rs.getString(1) + ":" + rs.getString(2) + ":" +
 				 * rs.getString(3) + ":" + rs.getString(4));
@@ -99,9 +106,10 @@ public class CountryDao {
 
 			return countries;
 
-		} catch (SQLException e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
+		} catch (SQLException e) {			
+			throw new SQLException("*" + texto("countryDao.findAllError") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			throw new ClassNotFoundException(e.getMessage());
 		} finally {
 			if (conn != null) {
 				try {
@@ -113,7 +121,7 @@ public class CountryDao {
 		}
 	}
 
-	private void createTableCountries() {
+	private void createTableCountries() throws ClassNotFoundException, SQLException {
 
 		Connection conn = null;
 		Statement stmt;
@@ -132,13 +140,17 @@ public class CountryDao {
 
 		} catch (SQLException e) {
 			e.printStackTrace();
-			throw new RuntimeException(e);
+			throw new SQLException("*" + texto("countryDao.createTableCountriesError") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			throw new ClassNotFoundException(e.getMessage());
 		} finally {
 			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
+					throw new SQLException(
+							"*" + texto("countryDao.createTableCountriesError") + "\n*" + e.getMessage());
 				}
 			}
 		}
@@ -176,4 +188,7 @@ public class CountryDao {
 		}
 	}
 
+	private String texto(String stringToGet) {
+		return java.util.ResourceBundle.getBundle("bundle", java.util.Locale.getDefault()).getString(stringToGet);
+	}
 }

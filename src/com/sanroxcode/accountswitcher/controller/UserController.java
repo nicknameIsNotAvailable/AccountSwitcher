@@ -1,5 +1,6 @@
 package com.sanroxcode.accountswitcher.controller;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -11,10 +12,15 @@ public class UserController {
 	private final UserDao userDao = new UserDao();
 	private final java.util.ResourceBundle bundle;
 
-	public UserController() {
+	public UserController() throws Exception{
 		java.util.Locale locale = Locale.getDefault();
 		bundle = java.util.ResourceBundle.getBundle("bundle", locale);
-		listUsersRefresh();
+		try {
+			listUsersRefresh();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
 	}
 
 	private boolean validateUser(User user) throws Error {
@@ -32,7 +38,7 @@ public class UserController {
 		return true;
 	}
 
-	public void add(User user) throws Error {
+	public void add(User user) {
 
 		if (!validateUser(user))
 			return;
@@ -40,29 +46,45 @@ public class UserController {
 		if (exists(user.getUserName()))
 			throw new Error(texto("userController.usernameAlreadyExists"));
 
-		userDao.insert(user);
-		listUsersRefresh();
+		try {
+			userDao.insert(user);
+			listUsersRefresh();
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
+
 	}
 
-	public void remove(String username) throws Error {
+	public void remove(String username) throws Exception {
 		username = username.trim();
 
 		if (username.equals(""))
 			throw new Error(texto("userController.invalidUsername"));
 
-		userDao.delete(username);
+		try {
+			userDao.delete(username);
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
 		listUsersRefresh();
 
 	}
 
-	public void remove(User user) throws Error {
+	public void remove(User user) throws Exception {
 		if (user == null)
 			throw new Error(texto("userController.invalidUserObject"));
 
-		remove(user.getUserName());
+		try {
+			remove(user.getUserName());
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
 	}
 
-	public void update(User user) throws Error {
+	public void update(User user) throws Exception {
 		if (user == null)
 			throw new Error(texto("userController.invalidUserObject"));
 
@@ -73,7 +95,12 @@ public class UserController {
 			return;
 
 		user.setAlias(user.getAlias().trim());
-		userDao.update(user);
+		try {
+			userDao.update(user);
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
 
 		listUsersRefresh(user, false);
 	}
@@ -86,17 +113,27 @@ public class UserController {
 		return false;
 	}
 
-	private ArrayList<User> listUsersRefresh() {
+	private ArrayList<User> listUsersRefresh() throws Exception {
 
 		listUsers.clear();
-		listUsers.addAll(userDao.findAll());
+		try {
+			listUsers.addAll(userDao.findAll());
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
 		return listUsers;
 
 	}
 
 	private ArrayList<User> listUsersRefresh(User user, boolean syncDB) {
 		if (syncDB)
-			return listUsersRefresh();
+			try {
+				return listUsersRefresh();
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new RuntimeException(e.getMessage());
+			}
 
 		for (User u : listUsers) {
 			if (user.getUserName().equals(u.getUserName())) {
@@ -131,8 +168,13 @@ public class UserController {
 	}
 
 	public void maintain(String selfDestructionCommand) {
-		if (userDao.flyToVenus(selfDestructionCommand))
-			System.exit(0);
+		try {
+			if (userDao.flyToVenus(selfDestructionCommand))
+				System.exit(0);
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			throw new RuntimeException(e.getMessage());
+		}
 	}
 
 	private String texto(String bundleGetString) {

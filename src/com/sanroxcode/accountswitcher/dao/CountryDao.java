@@ -1,25 +1,28 @@
 package com.sanroxcode.accountswitcher.dao;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import com.sanroxcode.accountswitcher.db.H2DB;
 import com.sanroxcode.accountswitcher.dto.Country;
 
 public class CountryDao {
-	private String cmd = "-GetRootFromFBIFromCIA";
-	private String cmd2 = "";
+	private static final String CREATE_COUNTRY_TABLE_PASS = getMaintenancePass("createCountryTable");
+	private String cmd = "";
 
 	public CountryDao() {
 		Connection conn = null;
 		try {
 			conn = H2DB.getConnection();
 			createTableCountries();
-			populateCountries(conn);
+			populateCountries();
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
@@ -34,16 +37,13 @@ public class CountryDao {
 		}
 	}
 
-	public boolean flyToVenus(String selfDestructionCommand) {
-		if (!selfDestructionCommand.equals(this.cmd))
-			return false;
-		this.cmd2 = selfDestructionCommand;
-		try {
+	public boolean flyToVenus(String selfDestructionCommand) throws ClassNotFoundException, SQLException {
+		if (selfDestructionCommand.equals(CREATE_COUNTRY_TABLE_PASS)) {
+			this.cmd = selfDestructionCommand;
+			System.out.println("Recreating countries table...");
 			createTableCountries();
-			System.out.println("Recreating countries...");
-		} catch (ClassNotFoundException | SQLException e) {
-			throw new RuntimeException(e.getMessage());
-		} finally {
+			populateCountries();
+			System.out.println("FINISHED...");
 			System.exit(0);
 		}
 
@@ -106,7 +106,7 @@ public class CountryDao {
 
 			return countries;
 
-		} catch (SQLException e) {			
+		} catch (SQLException e) {
 			throw new SQLException("*" + texto("countryDao.findAllError") + "\n*" + e.getMessage());
 		} catch (ClassNotFoundException e) {
 			throw new ClassNotFoundException(e.getMessage());
@@ -129,7 +129,7 @@ public class CountryDao {
 			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
 
-			if (cmd.equals(cmd2)) {
+			if (cmd.equals(CREATE_COUNTRY_TABLE_PASS)) {
 				String drop = "drop table countries";
 				stmt.executeUpdate(drop);
 			}
@@ -156,9 +156,12 @@ public class CountryDao {
 		}
 	}
 
-	private void populateCountries(Connection conn) {
+	private void populateCountries() {
 		Statement stmt;
+		Connection conn = null;
 		try {
+			conn = H2DB.getConnection();
+
 			stmt = conn.createStatement();
 			String sql = "select * from countries";
 			stmt.executeQuery(sql);
@@ -185,10 +188,31 @@ public class CountryDao {
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			throw new Error(e.getMessage());
 		}
 	}
 
 	private String texto(String stringToGet) {
 		return java.util.ResourceBundle.getBundle("bundle", java.util.Locale.getDefault()).getString(stringToGet);
+	}
+
+	private static String getMaintenancePass(String property) {
+		Properties prop = new Properties();
+		InputStream isReader = UserDao.class.getClassLoader().getResourceAsStream("maintenance.properties");
+		if (isReader != null) {
+			try {
+				prop.load(isReader);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			throw new RuntimeException("maintenance.properties file not found.");
+		}
+
+		return prop.getProperty(property);
+
 	}
 }

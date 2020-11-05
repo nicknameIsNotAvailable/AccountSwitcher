@@ -1,18 +1,22 @@
 package com.sanroxcode.accountswitcher.dao;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import com.sanroxcode.accountswitcher.db.H2DB;
 import com.sanroxcode.accountswitcher.dto.User;
 
 public class UserDao {
-	private String cmd = "-GetRootFromNASAFromArea51";
-	private String cmd2 = "";
+	private static final String CREATE_USER_TABLE_PASS = getMaintenancePass("createUserTable");
+	private static final String FIX_USER_TABLE_PASS = getMaintenancePass("fixUserTable");
+	private String cmd = "";
 
 	public UserDao() {
 		Connection conn = null;
@@ -34,12 +38,18 @@ public class UserDao {
 	}
 
 	public boolean flyToVenus(String selfDestructionCommand) throws ClassNotFoundException, SQLException {
-		if (!selfDestructionCommand.equals(this.cmd))
-			return false;
-		this.cmd2 = selfDestructionCommand;
-		createTableUsers();
-		System.out.println("...");
-		System.exit(0);
+		if (selfDestructionCommand.equals(CREATE_USER_TABLE_PASS)) {
+			this.cmd = selfDestructionCommand;
+			createTableUsers();
+			System.out.println("FINISHED...");
+			System.exit(0);
+		}
+		if (selfDestructionCommand.equals(FIX_USER_TABLE_PASS)) {
+			this.cmd = selfDestructionCommand;
+			maintenanceUser();
+			System.out.println("FINISHED...");
+			System.exit(0);
+		}
 
 		return false;
 
@@ -217,7 +227,7 @@ public class UserDao {
 			conn = H2DB.getConnection();
 			stmt = conn.createStatement();
 
-			if (cmd.equals(cmd2)) {
+			if (CREATE_USER_TABLE_PASS.equals(cmd)) {
 				String drop = "drop table users";
 				stmt.executeUpdate(drop);
 				System.out.println("Recreating Users...");
@@ -247,6 +257,84 @@ public class UserDao {
 
 	private String texto(String stringToGet) {
 		return java.util.ResourceBundle.getBundle("bundle", java.util.Locale.getDefault()).getString(stringToGet);
+	}
+
+	private static String getMaintenancePass(String property) {
+		Properties prop = new Properties();
+		InputStream isReader = UserDao.class.getClassLoader().getResourceAsStream("maintenance.properties");
+		if (isReader != null) {
+			try {
+				prop.load(isReader);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			throw new RuntimeException("maintenance.properties file not found.");
+		}
+
+		return prop.getProperty(property);
+
+	}
+
+	private void maintenanceUser() throws SQLException, ClassNotFoundException {
+
+		if (!FIX_USER_TABLE_PASS.equals(cmd))
+			return;
+
+		Statement stmt;
+		Connection conn = null;
+		try {
+			conn = H2DB.getConnection();
+			stmt = conn.createStatement();
+
+			System.out.println("Try to fix Users...");
+			System.out.println("Dropping temp table...");
+			String drop = "drop table if exists tempUsers";
+			stmt.executeUpdate(drop);
+
+			System.out.println("Re/Creating temp table...");
+			String sql = "create local temporary table tempUsers(platform varchar(100), domain varchar(3), username varchar(100), alias varchar(100))";
+			stmt.executeUpdate(sql);
+
+			System.out.println("Populating temp table...");
+			sql = "insert into tempUsers( platform, domain, username, alias) "
+					+ "select  platform, domain, username, alias from users";
+			stmt.executeUpdate(sql);
+
+			// trick
+			String aux = cmd;
+			cmd = CREATE_USER_TABLE_PASS;
+			createTableUsers();
+
+			cmd = aux;
+
+			System.out.println("Populating users table...");
+			sql = "insert into users( platform, domain, username, alias) "
+					+ "select  platform, domain, username, alias from tempUsers";
+			stmt.executeUpdate(sql);
+
+			System.out.println("Dropping temp table...");
+			drop = "drop table if exists tempUsers";
+			stmt.executeUpdate(drop);
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new SQLException("*" + texto("userDao.createTableUsersError") + "\n*" + e.getMessage());
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			throw new ClassNotFoundException(e.getMessage());
+		} finally {
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+					throw new SQLException("*" + texto("userDao.createTableUsersError") + "\n*" + e.getMessage());
+				}
+			}
+		}
+
 	}
 
 }

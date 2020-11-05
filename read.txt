@@ -1,7 +1,7 @@
 To execute the code as written, you will need to follow a few steps:
 1 - Create the resources/images directory at the project root
 2 - Copy images in png format into resources/images and name them according to the names mentioned in the source code
-3 - Add log4j2 to the project and configure it
+3 - Add log4j2 to the project and configure it (log4j2.properties)
 4 - Add H2DB version 1.4.200 or higher to the project
 5 - Change H2DB username and password
 6 - Add flatLAF and flatlaf-intellij-themes jars to the project

@@ -218,7 +218,7 @@ public class MainFrame {
 			return;
 		}
 
-		java.util.Locale.setDefault(new java.util.Locale("en", "US"));
+		//java.util.Locale.setDefault(new java.util.Locale("en", "US"));
 		java.util.Locale locale = java.util.Locale.getDefault();
 		bundle = ResourceBundle.getBundle("bundle", locale);
 

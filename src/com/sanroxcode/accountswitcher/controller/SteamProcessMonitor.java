@@ -19,7 +19,7 @@ public final class SteamProcessMonitor {
 					boolean actualState = isAlive;
 					while (true) {
 						Method meth = c.getMethod("isSteamRunning", Boolean.TYPE);
-						isAlive = (boolean) meth.invoke(null, true);
+						isAlive = (boolean) meth.invoke(null, false);
 						
 						if (actualState!=isAlive) {
 							actualState = isAlive;

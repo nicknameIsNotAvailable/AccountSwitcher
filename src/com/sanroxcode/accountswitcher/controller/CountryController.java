@@ -73,9 +73,9 @@ public class CountryController {
 	}
 
 	public void maintain(String selfDestructionCommand) {
-		try {
+		try {			
 			if (countryDao.flyToVenus(selfDestructionCommand))
-				System.exit(0);
+				return;
 		} catch (ClassNotFoundException e) {
 			System.out.println("Error \n" + e.getMessage());
 		} catch (SQLException e) {

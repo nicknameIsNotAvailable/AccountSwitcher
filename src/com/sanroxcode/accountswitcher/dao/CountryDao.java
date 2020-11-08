@@ -38,13 +38,12 @@ public class CountryDao {
 	}
 
 	public boolean flyToVenus(String selfDestructionCommand) throws ClassNotFoundException, SQLException {
-		if (selfDestructionCommand.equals(CREATE_COUNTRY_TABLE_PASS)) {
+		if (selfDestructionCommand.equals(CREATE_COUNTRY_TABLE_PASS)) {			
 			this.cmd = selfDestructionCommand;
 			System.out.println("Recreating countries table...");
 			createTableCountries();
 			populateCountries();
 			System.out.println("FINISHED...");
-			System.exit(0);
 		}
 
 		return false;
@@ -156,7 +155,7 @@ public class CountryDao {
 		}
 	}
 
-	private void populateCountries() {
+	private void populateCountries() throws SQLException {
 		Statement stmt;
 		Connection conn = null;
 		try {
@@ -191,7 +190,18 @@ public class CountryDao {
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 			throw new Error(e.getMessage());
+		} finally {
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+					throw new SQLException(
+							"*" + texto("countryDao.createTableCountriesError") + "\n*" + e.getMessage());
+				}
+			}
 		}
+
 	}
 
 	private String texto(String stringToGet) {

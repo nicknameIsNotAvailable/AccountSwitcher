@@ -47,8 +47,7 @@ public class UserDao {
 		if (selfDestructionCommand.equals(FIX_USER_TABLE_PASS)) {
 			this.cmd = selfDestructionCommand;
 			maintenanceUser();
-			System.out.println("FINISHED...");
-			System.exit(0);
+			System.out.println("FINISHED...");			
 		}
 
 		return false;

@@ -1,6 +1,7 @@
 package com.sanroxcode.accountswitcher.gui;
 
 import java.awt.AWTException;
+import java.awt.Desktop;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Point;
@@ -19,8 +20,12 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Vector;
 
@@ -62,14 +67,25 @@ import com.sanroxcode.accountswitcher.controller.SteamProcessX64;
 import com.sanroxcode.accountswitcher.controller.SteamProcessX86;
 import com.sanroxcode.accountswitcher.controller.SteamRegistryEntry;
 import com.sanroxcode.accountswitcher.controller.UserController;
+import com.sanroxcode.accountswitcher.dao.UserDao;
 import com.sanroxcode.accountswitcher.dto.Country;
 import com.sanroxcode.accountswitcher.dto.User;
 import com.sanroxcode.accountswitcher.util.JTextFieldLimit;
 import com.sanroxcode.accountswitcher.util.Lock;
 
 import static com.sanroxcode.accountswitcher.util.Constants.*;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
 
 public class MainFrame {
+
+	private static final String osName = System.getProperty("os.name");
+	private static final Logger logger = LogManager.getLogger(MainFrame.class);
+	private static final int MNUITEM_RECREATE_USERS_ID = 1;
+	private static final int MNUITEM_RECREATE_COUNTRIES_ID = 2;
+	private static final int MNUITEM_VISIT_US_ID = 3;
+	private static final int MNUITEM_JRE_ID = 4;
+	private static final int MNUITEM_UPDATER = 5;
 
 	private static String helloWorldText = "";
 	private JFrame frmAccountSwitcher;
@@ -84,8 +100,6 @@ public class MainFrame {
 	private final CountryController countryController;
 	private boolean flagFirstIconfied = true;
 	private boolean flagShowingAlias = false;
-	private static final String osName = System.getProperty("os.name");
-	private static final Logger logger = LogManager.getLogger(MainFrame.class);
 	private JDialog dialog = new JDialog();
 	private JTable table;
 
@@ -164,6 +178,8 @@ public class MainFrame {
 			cController.maintain(helloWorldText);
 			cController = null;
 			System.gc();
+			Runtime.getRuntime().exec("java -jar " + APP_JARNAME);
+			System.exit(0);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
@@ -192,7 +208,7 @@ public class MainFrame {
 	private void initialize() {
 
 		execUpdater();
-		
+
 		frmAccountSwitcher = new JFrame();
 
 		frmAccountSwitcher.setResizable(false);
@@ -218,7 +234,7 @@ public class MainFrame {
 			return;
 		}
 
-		//java.util.Locale.setDefault(new java.util.Locale("en", "US"));
+		// java.util.Locale.setDefault(new java.util.Locale("en", "US"));
 		java.util.Locale locale = java.util.Locale.getDefault();
 		bundle = ResourceBundle.getBundle("bundle", locale);
 
@@ -329,6 +345,36 @@ public class MainFrame {
 
 		frmAccountSwitcher.getContentPane().add(scrollPaneTable);
 
+		JMenuBar menuBar = new JMenuBar();
+		frmAccountSwitcher.setJMenuBar(menuBar);
+
+		JMenu mnMaintenance = new JMenu(texto("frmAccountSwitcher.maintenance"));
+		menuBar.add(mnMaintenance);
+
+		JMenuItem mnuRecreateUsers = new JMenuItem(texto("frmAccountSwitcher.recreateUsers"));
+		mnuRecreateUsers.addActionListener(new MenuActionListener(MNUITEM_RECREATE_USERS_ID));
+		mnMaintenance.add(mnuRecreateUsers);
+
+		JMenuItem mnuRecreateCountries = new JMenuItem(texto("frmAccountSwitcher.recreateCountries"));
+		mnuRecreateCountries.addActionListener(new MenuActionListener(MNUITEM_RECREATE_COUNTRIES_ID));
+		mnMaintenance.add(mnuRecreateCountries);
+
+		JMenu mnu1 = new JMenu(texto("frmAccountSwitcher.about"));
+		menuBar.add(mnu1);
+
+		JMenuItem mnuGit = new JMenuItem(texto("frmAccountSwitcher.visitUsGit"));
+		mnuGit.addActionListener(new MenuActionListener(MNUITEM_VISIT_US_ID));
+		mnu1.add(mnuGit);
+
+		JMenuItem mnuUpdater = new JMenuItem(texto("frmAccountSwitcher.visitUpdater"));
+		mnuUpdater.addActionListener(new MenuActionListener(MNUITEM_UPDATER));
+		mnu1.add(mnuUpdater);
+
+		JMenuItem mnuJRE = new JMenuItem("JRE 9");
+		mnuJRE.addActionListener(new MenuActionListener(MNUITEM_JRE_ID));
+
+		mnu1.add(mnuJRE);
+
 		steamStatusChangeMonitor();
 
 		refreshListComponents();
@@ -435,6 +481,45 @@ public class MainFrame {
 				JOptionPane.showMessageDialog(frmAccountSwitcher, e.getMessage(),
 						texto("frmAccountSwitcher.updaterError"), JOptionPane.ERROR_MESSAGE);
 			}
+	}
+
+	public boolean openWebBrowserURI(URI uri) {
+		Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+		if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+			try {
+				desktop.browse(uri);
+				return true;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return false;
+	}
+
+	public boolean openWebpage(URL url) {
+		try {
+			return openWebBrowserURI(url.toURI());
+		} catch (URISyntaxException e) {
+			throw new RuntimeException();
+		}
+	}
+
+	private static String getMaintenancePass(String property) {
+		Properties prop = new Properties();
+		InputStream isReader = UserDao.class.getClassLoader().getResourceAsStream("maintenance.properties");
+		if (isReader != null) {
+			try {
+				prop.load(isReader);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			throw new RuntimeException("maintenance.properties file not found.");
+		}
+
+		return prop.getProperty(property);
+
 	}
 
 	/*********************************************************************************************************************************************************/
@@ -766,7 +851,6 @@ public class MainFrame {
 	}
 
 	/*********************************************************************************************************************************************************/
-
 	private class ClickListener extends MouseAdapter {
 
 		public void mouseClicked(MouseEvent e) {
@@ -857,5 +941,67 @@ public class MainFrame {
 		public void windowClosing(WindowEvent e) {
 			addTrayIconDisposeFrame((JFrame) e.getSource());
 		}
+	}
+
+	private class MenuActionListener implements ActionListener {
+		private int menuID;
+
+		public MenuActionListener(int menuID) {
+			this.menuID = menuID;
+		}
+
+		private void menuItemMaintenancePerformed() {
+
+			boolean isUserMenu = (this.menuID == MNUITEM_RECREATE_USERS_ID);
+			int resposta;
+
+			resposta = JOptionPane.showConfirmDialog(frmAccountSwitcher,
+					texto(isUserMenu ? "frmAccountSwitcher.confirmRecreateUsers"
+							: "frmAccountSwitcher.confirmRecreateCountries"),
+					texto("frmAccountSwitcher.maintenance"), JOptionPane.YES_NO_CANCEL_OPTION,
+					JOptionPane.QUESTION_MESSAGE);
+			if (resposta == JOptionPane.YES_OPTION) {
+				JOptionPane.showMessageDialog(frmAccountSwitcher, texto("frmAccountSwitcher.requireRestart"), APP_TITLE,
+						JOptionPane.INFORMATION_MESSAGE);
+				helloWorldText = getMaintenancePass(isUserMenu ? "fixUserTable" : "createCountryTable");
+				maintain();
+			}
+		}
+
+		private void menuItemAboutPerformed() {
+			URI uri;
+			try {
+				switch (this.menuID) {
+				case MNUITEM_VISIT_US_ID:
+					uri = new URI("https://github.com/sanroxcode/AccountSwitcherBeta");
+					break;
+				case MNUITEM_JRE_ID:
+					uri = new URI("https://www.oracle.com/java/technologies/javase/javase9-archive-downloads.html");
+					break;
+				case MNUITEM_UPDATER:
+					uri = new URI("https://github.com/sanroxcode/AccountSwitcherUpdater/releases/latest");
+					break;
+				default:
+					uri = null;
+				}
+
+				openWebBrowserURI(uri);
+
+			} catch (URISyntaxException e) {
+				JOptionPane.showMessageDialog(frmAccountSwitcher, texto("frmAccountSwitcher.openBrowserError"),
+						texto("frmAccountSwitcher.error"), JOptionPane.ERROR_MESSAGE);
+			}
+
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+
+			if (this.menuID == MNUITEM_RECREATE_USERS_ID || this.menuID == MNUITEM_RECREATE_COUNTRIES_ID)
+				menuItemMaintenancePerformed();
+			else
+				menuItemAboutPerformed();
+		}
+
 	}
 }

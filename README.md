@@ -10,10 +10,8 @@ Simple application to switch between accounts, initially, steam. </br>
 ![screen4](https://user-images.githubusercontent.com/73313396/98300464-b0af6080-1f8f-11eb-8578-6d2983f77ec5.jpeg)
 ![screen5](https://user-images.githubusercontent.com/73313396/98300467-b147f700-1f8f-11eb-88c7-93bec56e5149.jpeg)
 ![screen6](https://user-images.githubusercontent.com/73313396/98300469-b147f700-1f8f-11eb-891b-4ad2ff4ec9fe.jpeg)
-![screen7](https://user-images.githubusercontent.com/73313396/98300472-b1e08d80-1f8f-11eb-95f0-09dcf6088355.jpeg)
-![screen8](https://user-images.githubusercontent.com/73313396/98300476-b311ba80-1f8f-11eb-9ffe-f3d00115e59b.jpeg)
-
-
+![screen7](https://user-images.githubusercontent.com/73313396/98453657-189dac80-2132-11eb-9582-db3df43684d4.jpeg)
+![screen8](https://user-images.githubusercontent.com/73313396/98453658-1a677000-2132-11eb-83a5-de92dba06494.jpeg)
 ## Overview
 Changing active accounts is done by sending basic commands to the steam client, preventing the process from ending abruptly but automating logout and login.</br>
 The application is currently supporting English, Brazilian Portuguese and Spanish</br>

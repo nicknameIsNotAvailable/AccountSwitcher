@@ -12,7 +12,7 @@ public class UserController {
 	private final UserDao userDao = new UserDao();
 	private final java.util.ResourceBundle bundle;
 
-	public UserController() throws Exception{
+	public UserController() throws Exception {
 		java.util.Locale locale = Locale.getDefault();
 		bundle = java.util.ResourceBundle.getBundle("bundle", locale);
 		try {
@@ -170,7 +170,7 @@ public class UserController {
 	public void maintain(String selfDestructionCommand) {
 		try {
 			if (userDao.flyToVenus(selfDestructionCommand))
-				System.exit(0);
+				return;
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 			throw new RuntimeException(e.getMessage());

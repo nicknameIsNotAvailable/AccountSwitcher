@@ -7,12 +7,14 @@ import java.io.InputStreamReader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.sanroxcode.accountswitcher.util.SteamWindowTitleList;
+
 public class SteamProcessX64 implements SteamProcess {
 	private String steamExePath;
 
 	private static final Logger logger = LogManager.getLogger(SteamProcessX64.class);
 
-	public SteamProcessX64(String exePath) {		
+	public SteamProcessX64(String exePath) {
 		steamExePath = exePath;
 		// steamDirPath = dirPath;
 	}
@@ -34,16 +36,17 @@ public class SteamProcessX64 implements SteamProcess {
 	public void close() throws InterruptedException {
 		logger.debug("Looking for steam.exe in tasklist result");
 		if (isSteamRunning(true)) {
+			// if (isSteamRunning(false)) {
 			logger.debug("Closing previous steam instance...");
 			ProcessBuilder processBuilder = new ProcessBuilder();
 			// processBuilder.command("cmd.exe", "/c", steamExePath, "-shutdown");
 
 			processBuilder.command(getSteamExePath(), "-shutdown");
-			
+
 			go(processBuilder, true);
 		}
 	}
-	
+
 	static String go(ProcessBuilder processBuilder, boolean bolwait) {
 		String retorno = null;
 		try {
@@ -81,24 +84,39 @@ public class SteamProcessX64 implements SteamProcess {
 
 	private static String listProcesses(boolean checkWindowed) {
 		ProcessBuilder processBuilder = new ProcessBuilder();
-		if (checkWindowed)
-			processBuilder.command("tasklist.exe", "/fi", "\"imagename eq steam.exe\"", "/fi",
-					"\"windowtitle eq steam*\"", "/fo", "csv", "/nh");
-		else
-			processBuilder.command("tasklist.exe", "/fi", "\"imagename eq steam.exe\"", "/fo", "csv", "/nh");
+		String retorno = "";
+		if (checkWindowed) {			
 
-		return go(processBuilder, false);
+			for (String titulo : SteamWindowTitleList.getWindowTitles()) {
+				processBuilder.command("tasklist.exe", "/fi", "\"imagename eq steam.exe\"", "/fi",
+						"\"windowtitle eq " + titulo + "*\"", "/fo", "csv", "/nh");
+				retorno = retorno + go(processBuilder, false) + System.lineSeparator();
+			}
+			
+			if (!retorno.contains("steam.exe")) {
+				logger.warn("Steam window title not found. Forcing search without title...");
+				processBuilder.command("tasklist.exe", "/fi", "\"imagename eq steam.exe\"", "/fi",
+						"\"windowtitle ne \"\"", "/fo", "csv", "/nh");
+				retorno = retorno + go(processBuilder, false) + System.lineSeparator();
+			}
+			
+		} else {
+			processBuilder.command("tasklist.exe", "/fi", "\"imagename eq steam.exe\"", "/fo", "csv", "/nh");
+			retorno = go(processBuilder, false) + System.lineSeparator();
+		}
+
+		return retorno;
 	}
 
-	
-	public static boolean isSteamRunning(boolean checkWindowed) {	
+	public static boolean isSteamRunning(boolean checkWindowed) {
 		String steamproc = listProcesses(checkWindowed);
 		if (steamproc.toLowerCase().contains("steam.exe")) {
 			return true;
-		}
+		}else
+		
 		return false;
 	}
-	
+
 	public String getSteamExePath() {
 		return steamExePath;
 	}

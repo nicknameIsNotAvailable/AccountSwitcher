@@ -1,0 +1,8 @@
+/bin/
+/.settings/
+/resources/images/
+accswitch.log
+*.jar
+config.xml
+.classpath
+.project

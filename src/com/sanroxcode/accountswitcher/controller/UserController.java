@@ -24,7 +24,7 @@ public class UserController {
 	}
 
 	private boolean validateUser(User user) throws Error {
-		String regexSteamUserName = "^[A-Za-z]\\w{3,19}$";
+		String regexSteamUserName = "[A-Za-z0-9_]{3,19}";
 
 		if (user.getUserName().equals("") || !user.getUserName().matches(regexSteamUserName))
 			throw new Error(texto("userController.invalidUsername"));
